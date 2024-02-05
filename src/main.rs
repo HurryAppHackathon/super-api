@@ -13,7 +13,9 @@ use axum::{
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{
+    borrow::{Borrow, BorrowMut},
     collections::HashMap,
+    hash::Hash,
     sync::{Arc, Mutex},
 };
 use tokio::net::TcpListener;
@@ -57,18 +59,31 @@ struct Message {
 impl Default for Message {
     fn default() -> Self {
         Self {
-            content: Arc::from("test"),
+            content: Arc::from(""),
             id: <_>::default(),
             author: <_>::default(),
         }
     }
 }
 
-#[derive(Default, Clone, Serialize)]
+#[derive(Clone, Serialize)]
 struct Video {
-    // TODO:! asd
+    video_url: Arc<str>,
 }
-
+impl Video {
+    fn new(video_url: &str) -> Self {
+        Self {
+            video_url: video_url.into(),
+        }
+    }
+}
+impl Default for Video {
+    fn default() -> Self {
+        Self {
+            video_url: Arc::from(""),
+        }
+    }
+}
 #[derive(Default, Clone, Serialize)]
 struct Party {
     name: String,
@@ -99,6 +114,7 @@ async fn main() -> Result<()> {
         .route("/", get(get_root))
         .route("/parties", get(get_parties))
         .route("/create_party", post(create_party))
+        .route("/attach_video", post(attach_video))
         .route("/delete_party", delete(delete_party))
         .with_state(AppState::default());
 
@@ -154,13 +170,37 @@ async fn delete_party(
         return (StatusCode::NOT_FOUND, Json("Party not found"));
     }
 }
-
-// struct AddVideo {
-//     id: u32, // TODO: Snowflake
-//     video_url: Arc<str>,
-// }
-// async fn add_video(
-//     State(state): State<AppState>,
-//     Json(payload): Json<AddVideo>,
-// ) -> impl IntoResponse {
-// }
+#[derive(Deserialize)]
+struct AttachVideo {
+    id: u32, // TODO: Snowflake
+    video_url: Arc<str>,
+}
+#[axum::debug_handler]
+async fn attach_video(
+    State(state): State<AppState>,
+    Json(payload): Json<AttachVideo>,
+) -> impl IntoResponse {
+    let write_mutex = Arc::clone(&state.parties);
+    let read_mutex = Arc::clone(&state.parties);
+    let read_guard = read_mutex.lock().unwrap();
+    if let Some(party) = read_guard.get(&payload.id).cloned() {
+        drop(read_guard);
+        let mut write_guard = write_mutex.lock().unwrap();
+        write_guard.borrow_mut().insert(
+            payload.id,
+            Arc::new(Party {
+                video: Some(Video::new(&payload.video_url)),
+                ..Party::clone(&party)
+            }),
+        );
+        return (
+            StatusCode::NOT_FOUND,
+            Json(write_guard.clone() as HashMap<u32, Arc<Party>>).into_response(),
+        );
+    } else {
+        return (
+            StatusCode::NOT_FOUND,
+            Json("Party not found").into_response(),
+        );
+    }
+}
