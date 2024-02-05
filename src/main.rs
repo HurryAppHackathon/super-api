@@ -115,6 +115,7 @@ async fn main() -> Result<()> {
         .route("/parties", get(get_parties))
         .route("/create_party", post(create_party))
         .route("/attach_video", post(attach_video))
+        .route("/remove_video", delete(remove_video))
         .route("/delete_party", delete(delete_party))
         .with_state(AppState::default());
 
@@ -204,3 +205,39 @@ async fn attach_video(
         );
     }
 }
+
+
+#[derive(Deserialize)]
+struct RemoveVideo {
+    id: u32, // TODO: Snowflake
+}
+#[axum::debug_handler]
+async fn remove_video(
+    State(state): State<AppState>,
+    Json(payload): Json<RemoveVideo>,
+) -> impl IntoResponse {
+    let write_mutex = Arc::clone(&state.parties);
+    let read_mutex = Arc::clone(&state.parties);
+    let read_guard = read_mutex.lock().unwrap();
+    if let Some(party) = read_guard.get(&payload.id).cloned() {
+        drop(read_guard);
+        let mut write_guard = write_mutex.lock().unwrap();
+        write_guard.borrow_mut().insert(
+            payload.id,
+            Arc::new(Party {
+                video: None,
+                ..Party::clone(&party)
+            }),
+        );
+        return (
+            StatusCode::NOT_FOUND,
+            Json(write_guard.clone() as HashMap<u32, Arc<Party>>).into_response(),
+        );
+    } else {
+        return (
+            StatusCode::NOT_FOUND,
+            Json("Party not found").into_response(),
+        );
+    }
+}
+
