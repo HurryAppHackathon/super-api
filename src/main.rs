@@ -13,9 +13,8 @@ use axum::{
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{
-    borrow::{Borrow, BorrowMut},
+    borrow::BorrowMut,
     collections::HashMap,
-    hash::Hash,
     sync::{Arc, Mutex},
 };
 use tokio::net::TcpListener;
@@ -110,6 +109,21 @@ struct AppState {
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
 
+    let mut hash = HashMap::new();
+    // ! some performance tests
+    // let mut rng = rand::thread_rng();
+    // let mut i = 0;
+    // loop {
+    //     hash.insert(rng.gen(), Arc::new(Party::new("username", "name")));
+    //     if i == 20000 {
+    //         break;
+    //     }
+    //     i += 1;
+    // }
+    let state = AppState {
+        parties: Arc::new(Mutex::new(hash)),
+    };
+
     let app = Router::new()
         .route("/", get(get_root))
         .route("/parties", get(get_parties))
@@ -117,7 +131,7 @@ async fn main() -> Result<()> {
         .route("/attach_video", post(attach_video))
         .route("/remove_video", delete(remove_video))
         .route("/delete_party", delete(delete_party))
-        .with_state(AppState::default());
+        .with_state(state);
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", *PORT)).await?;
 
@@ -194,10 +208,7 @@ async fn attach_video(
                 ..Party::clone(&party)
             }),
         );
-        return (
-            StatusCode::NOT_FOUND,
-            Json(write_guard.clone() as HashMap<u32, Arc<Party>>).into_response(),
-        );
+        return (StatusCode::OK, Json(party).into_response());
     } else {
         return (
             StatusCode::NOT_FOUND,
@@ -205,7 +216,6 @@ async fn attach_video(
         );
     }
 }
-
 
 #[derive(Deserialize)]
 struct RemoveVideo {
@@ -229,10 +239,7 @@ async fn remove_video(
                 ..Party::clone(&party)
             }),
         );
-        return (
-            StatusCode::NOT_FOUND,
-            Json(write_guard.clone() as HashMap<u32, Arc<Party>>).into_response(),
-        );
+        return (StatusCode::OK, Json(party).into_response());
     } else {
         return (
             StatusCode::NOT_FOUND,
@@ -240,4 +247,3 @@ async fn remove_video(
         );
     }
 }
-
