@@ -22,36 +22,37 @@ use tokio::net::TcpListener;
 mod config;
 mod error;
 mod prelude;
+mod snowflake;
 
 use config::*;
 use prelude::*;
+use snowflake::Snowflake;
 
 #[derive(Clone, Serialize)]
 struct User {
-    id: u32, // TODO:! make it Snowflake
+    id: Snowflake, 
     username: Arc<str>,
 }
 impl Default for User {
     fn default() -> Self {
         Self {
-            id: Default::default(),
+            id: <_>::default(),
             username: Arc::from(""),
         }
     }
 }
 impl User {
     fn new(username: &str) -> Self {
-        let mut rng = rand::thread_rng();
         Self {
             username: username.into(),
-            id: rng.gen(),
+            ..<_>::default()
         }
     }
 }
 
 #[derive(Clone, Serialize)]
 struct Message {
-    id: u32, // TODO:! make it Snowflake
+    id: Snowflake, 
     content: Arc<str>,
     author: User,
 }
@@ -102,15 +103,15 @@ impl Party {
 }
 #[derive(Default, Clone)]
 struct AppState {
-    parties: Arc<Mutex<HashMap<u32, Arc<Party>>>>,
+    parties: Arc<Mutex<HashMap<Snowflake, Arc<Party>>>>,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
-
-    let mut hash = HashMap::new();
     // ! some performance tests
+    #[allow(unused_mut)]
+    let mut hash = HashMap::new();
     // let mut rng = rand::thread_rng();
     // let mut i = 0;
     // loop {
@@ -157,23 +158,22 @@ async fn create_party(
     State(state): State<AppState>,
     Json(payload): Json<CreateParty>,
 ) -> impl IntoResponse {
-    let mut rng = rand::thread_rng();
     let party = Arc::from(Party::new(&payload.username, &payload.name));
     state
         .parties
         .lock()
         .unwrap()
-        .insert(rng.gen(), party.clone());
+        .insert(Snowflake::generate(), Arc::clone(&party));
     return Json(party);
 }
 async fn get_parties(State(state): State<AppState>) -> impl IntoResponse {
     let guard = state.parties.lock().unwrap();
-    let hash: HashMap<u32, Arc<Party>> = guard.clone();
+    let hash: HashMap<_, _> = guard.clone(); // WARN: Deep clone
     return Json(hash);
 }
 #[derive(Deserialize)]
 struct DeleteParty {
-    id: u32, // TODO: Snowflake
+    id: Snowflake, 
 }
 async fn delete_party(
     State(state): State<AppState>,
@@ -187,7 +187,7 @@ async fn delete_party(
 }
 #[derive(Deserialize)]
 struct AttachVideo {
-    id: u32, // TODO: Snowflake
+    id: Snowflake,
     video_url: Arc<str>,
 }
 #[axum::debug_handler]
@@ -195,18 +195,17 @@ async fn attach_video(
     State(state): State<AppState>,
     Json(payload): Json<AttachVideo>,
 ) -> impl IntoResponse {
-    let write_mutex = Arc::clone(&state.parties);
-    let read_mutex = Arc::clone(&state.parties);
-    let read_guard = read_mutex.lock().unwrap();
+    let read_guard = state.parties.lock().unwrap();
     if let Some(party) = read_guard.get(&payload.id).cloned() {
         drop(read_guard);
-        let mut write_guard = write_mutex.lock().unwrap();
-        write_guard.borrow_mut().insert(
+        let mut write_guard = state.parties.lock().unwrap();
+        let party = Arc::new(Party {
+            video: Some(Video::new(&payload.video_url)),
+            ..Party::clone(&party) // WARN: Deep clone
+        });
+        write_guard.insert(
             payload.id,
-            Arc::new(Party {
-                video: Some(Video::new(&payload.video_url)),
-                ..Party::clone(&party)
-            }),
+            Arc::clone(&party),
         );
         return (StatusCode::OK, Json(party).into_response());
     } else {
@@ -219,24 +218,22 @@ async fn attach_video(
 
 #[derive(Deserialize)]
 struct RemoveVideo {
-    id: u32, // TODO: Snowflake
+    id: Snowflake, 
 }
 #[axum::debug_handler]
 async fn remove_video(
     State(state): State<AppState>,
     Json(payload): Json<RemoveVideo>,
 ) -> impl IntoResponse {
-    let write_mutex = Arc::clone(&state.parties);
-    let read_mutex = Arc::clone(&state.parties);
-    let read_guard = read_mutex.lock().unwrap();
+    let read_guard = state.parties.lock().unwrap();
     if let Some(party) = read_guard.get(&payload.id).cloned() {
         drop(read_guard);
-        let mut write_guard = write_mutex.lock().unwrap();
+        let mut write_guard = state.parties.lock().unwrap();
         write_guard.borrow_mut().insert(
             payload.id,
             Arc::new(Party {
                 video: None,
-                ..Party::clone(&party)
+                ..Party::clone(&party) // WARN: Deep clone
             }),
         );
         return (StatusCode::OK, Json(party).into_response());
