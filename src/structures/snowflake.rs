@@ -6,7 +6,7 @@ use snowflake::SnowflakeIdGenerator;
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 lazy_static! {
-	// 2024-02-05 21:26:26
+    // 2024-02-05 21:26:26
     static ref EPOCH: SystemTime = UNIX_EPOCH + Duration::from_millis(1707168386);
 
     static ref GENERATOR: Mutex<SnowflakeIdGenerator> = Mutex::new(SnowflakeIdGenerator::with_epoch(0, 0, *EPOCH));
@@ -16,9 +16,8 @@ lazy_static! {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Snowflake(pub i64);
 
-
 impl TryFrom<String> for Snowflake {
-    type Error = std::num::ParseIntError	;
+    type Error = std::num::ParseIntError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Ok(Self(value.parse()?))
@@ -41,9 +40,9 @@ impl Snowflake {
 }
 
 impl Default for Snowflake {
-	fn default() -> Self {
-		Self::generate()
-	}
+    fn default() -> Self {
+        Self::generate()
+    }
 }
 impl ToString for Snowflake {
     fn to_string(&self) -> String {

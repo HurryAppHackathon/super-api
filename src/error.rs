@@ -5,7 +5,7 @@ pub enum Error {
 
     #[error("Parse error: {0}")]
     ParseIntError(#[from] std::num::ParseIntError),
-	
+
     #[error(transparent)]
     IO(#[from] std::io::Error),
 }
