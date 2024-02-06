@@ -2,7 +2,7 @@ use chrono::{DateTime, TimeZone, Utc};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use snowflake::SnowflakeIdGenerator;
-use std::default;
+
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 lazy_static! {
@@ -13,7 +13,7 @@ lazy_static! {
 }
 
 // #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Hash)]
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Snowflake(pub i64);
 
 impl Snowflake {
@@ -22,7 +22,7 @@ impl Snowflake {
     }
 
     pub fn created_at_timestamp(&self) -> Duration {
-        Duration::from_millis(((*self).0 >> 22) as u64) + EPOCH.duration_since(UNIX_EPOCH).unwrap()
+        Duration::from_millis((self.0 >> 22) as u64) + EPOCH.duration_since(UNIX_EPOCH).unwrap()
     }
 
     pub fn created_at(&self) -> DateTime<Utc> {
@@ -35,4 +35,9 @@ impl Default for Snowflake {
 	fn default() -> Self {
 		Self::generate()
 	}
+}
+impl ToString for Snowflake {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
 }

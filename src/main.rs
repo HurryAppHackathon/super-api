@@ -4,20 +4,28 @@
 
 //! Why using Arc<T> not the smart pointer of T, becuase some types i dont need the extra capacity to mutaute the thing.
 use axum::{
-    extract::State,
-    http::StatusCode,
+    extract::{
+        State,
+    },
+    http::{StatusCode},
     response::IntoResponse,
     routing::{delete, get, post},
     serve, Json, Router,
 };
-use rand::Rng;
+
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use socketioxide::{
+    extract::{AckSender, Bin, Data, SocketRef},
+    SocketIo,
+};
 use std::{
     borrow::BorrowMut,
     collections::HashMap,
     sync::{Arc, Mutex},
 };
 use tokio::net::TcpListener;
+
 
 mod config;
 mod error;
@@ -28,9 +36,9 @@ use config::*;
 use prelude::*;
 use snowflake::Snowflake;
 
-#[derive(Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct User {
-    id: Snowflake, 
+    id: Snowflake,
     username: Arc<str>,
 }
 impl Default for User {
@@ -50,11 +58,20 @@ impl User {
     }
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct Message {
-    id: Snowflake, 
+    id: Snowflake,
     content: Arc<str>,
     author: User,
+}
+impl Message {
+    fn new(content: Arc<str>, author: User) -> Self {
+        Self {
+            id: Snowflake::generate(),
+            content,
+            author,
+        }
+    }
 }
 impl Default for Message {
     fn default() -> Self {
@@ -105,6 +122,32 @@ impl Party {
 struct AppState {
     parties: Arc<Mutex<HashMap<Snowflake, Arc<Party>>>>,
 }
+#[derive(Deserialize, Debug, Serialize)]
+struct M {
+    author: Arc<str>,
+    content: Arc<str>,
+}
+
+fn on_connect(socket: SocketRef) {
+    let v = socket.req_parts();
+    let auth = v.headers.get("Authorization");
+    println!("{auth:?}");
+    println!("Socket.IO connected: {:?} {:?}", socket.ns(), socket.id);
+
+    socket.on("message", |socket: SocketRef, Data::<M>(data), Bin(bin)| {
+        let message = Message::new(data.content, User::new(&data.author));
+        println!("Received event: {:?} {:?}", message, bin);
+        socket.bin(bin).emit("message-back", message).ok();
+    });
+
+    socket.on(
+        "message-with-ack",
+        |Data::<Value>(data), ack: AckSender, Bin(bin)| {
+            println!("Received event: {:?} {:?}", data, bin);
+            ack.bin(bin).send(data).ok();
+        },
+    );
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -125,6 +168,11 @@ async fn main() -> Result<()> {
         parties: Arc::new(Mutex::new(hash)),
     };
 
+    let (layer, io) = SocketIo::new_layer();
+
+    io.ns("/", on_connect);
+    io.ns("/custom", on_connect);
+
     let app = Router::new()
         .route("/", get(get_root))
         .route("/parties", get(get_parties))
@@ -132,6 +180,9 @@ async fn main() -> Result<()> {
         .route("/attach_video", post(attach_video))
         .route("/remove_video", delete(remove_video))
         .route("/delete_party", delete(delete_party))
+        // .route("/ws", get(realtime))
+        .layer(layer)
+        // .layer(CorsLayer::permissive())
         .with_state(state);
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", *PORT)).await?;
@@ -164,25 +215,25 @@ async fn create_party(
         .lock()
         .unwrap()
         .insert(Snowflake::generate(), Arc::clone(&party));
-    return Json(party);
+    Json(party)
 }
 async fn get_parties(State(state): State<AppState>) -> impl IntoResponse {
     let guard = state.parties.lock().unwrap();
     let hash: HashMap<_, _> = guard.clone(); // WARN: Deep clone
-    return Json(hash);
+    Json(hash)
 }
 #[derive(Deserialize)]
 struct DeleteParty {
-    id: Snowflake, 
+    id: Snowflake,
 }
 async fn delete_party(
     State(state): State<AppState>,
     Json(payload): Json<DeleteParty>,
 ) -> impl IntoResponse {
     if let Some(_) = state.parties.lock().unwrap().remove(&payload.id) {
-        return (StatusCode::OK, Json("Party has been deleted"));
+        (StatusCode::OK, Json("Party has been deleted"))
     } else {
-        return (StatusCode::NOT_FOUND, Json("Party not found"));
+        (StatusCode::NOT_FOUND, Json("Party not found"))
     }
 }
 #[derive(Deserialize)]
@@ -203,22 +254,19 @@ async fn attach_video(
             video: Some(Video::new(&payload.video_url)),
             ..Party::clone(&party) // WARN: Deep clone
         });
-        write_guard.insert(
-            payload.id,
-            Arc::clone(&party),
-        );
-        return (StatusCode::OK, Json(party).into_response());
+        write_guard.insert(payload.id, Arc::clone(&party));
+        (StatusCode::OK, Json(party).into_response())
     } else {
-        return (
+        (
             StatusCode::NOT_FOUND,
             Json("Party not found").into_response(),
-        );
+        )
     }
 }
 
 #[derive(Deserialize)]
 struct RemoveVideo {
-    id: Snowflake, 
+    id: Snowflake,
 }
 #[axum::debug_handler]
 async fn remove_video(
@@ -236,11 +284,11 @@ async fn remove_video(
                 ..Party::clone(&party) // WARN: Deep clone
             }),
         );
-        return (StatusCode::OK, Json(party).into_response());
+        (StatusCode::OK, Json(party).into_response())
     } else {
-        return (
+        (
             StatusCode::NOT_FOUND,
             Json("Party not found").into_response(),
-        );
+        )
     }
 }
