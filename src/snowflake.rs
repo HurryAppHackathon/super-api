@@ -16,6 +16,15 @@ lazy_static! {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Snowflake(pub i64);
 
+
+impl TryFrom<String> for Snowflake {
+    type Error = std::num::ParseIntError	;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Ok(Self(value.parse()?))
+    }
+}
+
 impl Snowflake {
     pub fn generate() -> Self {
         Self(GENERATOR.lock().unwrap().generate())

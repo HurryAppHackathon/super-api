@@ -4,10 +4,8 @@
 
 //! Why using Arc<T> not the smart pointer of T, becuase some types i dont need the extra capacity to mutaute the thing.
 use axum::{
-    extract::{
-        State,
-    },
-    http::{StatusCode},
+    extract::{Path, State},
+    http::StatusCode,
     response::IntoResponse,
     routing::{delete, get, post},
     serve, Json, Router,
@@ -25,7 +23,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::net::TcpListener;
-
 
 mod config;
 mod error;
@@ -105,7 +102,7 @@ impl Default for Video {
 struct Party {
     name: String,
     owner: User,
-    messages: Vec<Message>,
+    messages: Vec<Arc<Message>>,
     video: Option<Video>,
 }
 impl Party {
@@ -114,13 +111,14 @@ impl Party {
         Self {
             name: name.into(),
             owner,
-            ..Default::default()
+            ..<_>::default()
         }
     }
 }
-#[derive(Default, Clone)]
+#[derive(Clone)]
 struct AppState {
     parties: Arc<Mutex<HashMap<Snowflake, Arc<Party>>>>,
+    socket: Arc<Mutex<SocketIo>>,
 }
 #[derive(Deserialize, Debug, Serialize)]
 struct M {
@@ -164,22 +162,30 @@ async fn main() -> Result<()> {
     //     }
     //     i += 1;
     // }
-    let state = AppState {
-        parties: Arc::new(Mutex::new(hash)),
-    };
 
     let (layer, io) = SocketIo::new_layer();
 
     io.ns("/", on_connect);
     io.ns("/custom", on_connect);
 
+    let state = AppState {
+        parties: Arc::new(Mutex::new(hash)),
+        socket: Arc::new(Mutex::new(io)),
+    };
+
+    let party = Router::new()
+        .route("/all", get(get_parties))
+        .route("/", post(create_party))
+        .route("/", delete(delete_party))
+        // video routes
+        .route("/:id/video", delete(remove_video))
+        .route("/:id/video", post(attach_video))
+        .route("/:id/messages", post(send_message))
+        .route("/:id/messages", get(messages));
+
     let app = Router::new()
         .route("/", get(get_root))
-        .route("/parties", get(get_parties))
-        .route("/create_party", post(create_party))
-        .route("/attach_video", post(attach_video))
-        .route("/remove_video", delete(remove_video))
-        .route("/delete_party", delete(delete_party))
+        .nest("/party", party)
         // .route("/ws", get(realtime))
         .layer(layer)
         // .layer(CorsLayer::permissive())
@@ -196,6 +202,75 @@ async fn main() -> Result<()> {
 
 async fn get_root() -> impl IntoResponse {
     "Hello from axum!"
+}
+#[derive(Deserialize)]
+struct PartyIdPath {
+    id: Snowflake,
+}
+#[derive(Deserialize)]
+struct CreateMessage {
+    author: Arc<str>,
+    content: Arc<str>,
+}
+
+async fn send_message(
+    State(state): State<AppState>,
+    Path(path): Path<PartyIdPath>,
+    Json(payload): Json<CreateMessage>,
+) -> impl IntoResponse {
+    let guard = state.parties.lock().unwrap();
+
+    if let Some(party) = guard.get(&path.id).cloned() {
+        drop(guard);
+
+        let mut guard = state.parties.lock().unwrap();
+        let message = Arc::new(Message::new(payload.content, User::new(&*payload.author)));
+        let mut party = Party {
+            ..Party::clone(&party)
+        };
+        party.messages.push(Arc::clone(&message));
+        guard.insert(path.id, Arc::new(party));
+
+        state
+            .socket
+            .lock()
+            .unwrap()
+            .emit("message", Arc::clone(&message))
+            .ok();
+
+        return (StatusCode::OK, Json(message).into_response());
+    } else {
+        return (
+            StatusCode::NOT_FOUND,
+            Json("Party not found").into_response(),
+        );
+    };
+}
+
+async fn messages(
+    State(state): State<AppState>,
+    Path(path): Path<PartyIdPath>,
+) -> impl IntoResponse {
+    let hash = state.parties.lock().unwrap();
+
+    if let Some(party) = hash.get(&path.id).cloned() {
+        return (
+            StatusCode::OK,
+            Json(
+                party
+                    .messages
+                    .iter()
+                    .map(|c| c.as_ref())
+                    .collect::<Vec<&Message>>(),
+            )
+            .into_response(),
+        );
+    } else {
+        return (
+            StatusCode::NOT_FOUND,
+            Json("Party not found").into_response(),
+        );
+    };
 }
 
 #[derive(Deserialize)]
@@ -215,6 +290,12 @@ async fn create_party(
         .lock()
         .unwrap()
         .insert(Snowflake::generate(), Arc::clone(&party));
+    state
+        .socket
+        .lock()
+        .unwrap()
+        .emit("party-create", party.clone())
+        .ok();
     Json(party)
 }
 async fn get_parties(State(state): State<AppState>) -> impl IntoResponse {
@@ -222,6 +303,7 @@ async fn get_parties(State(state): State<AppState>) -> impl IntoResponse {
     let hash: HashMap<_, _> = guard.clone(); // WARN: Deep clone
     Json(hash)
 }
+
 #[derive(Deserialize)]
 struct DeleteParty {
     id: Snowflake,
@@ -238,23 +320,23 @@ async fn delete_party(
 }
 #[derive(Deserialize)]
 struct AttachVideo {
-    id: Snowflake,
     video_url: Arc<str>,
 }
 #[axum::debug_handler]
 async fn attach_video(
     State(state): State<AppState>,
+    Path(path): Path<PartyIdPath>,
     Json(payload): Json<AttachVideo>,
 ) -> impl IntoResponse {
     let read_guard = state.parties.lock().unwrap();
-    if let Some(party) = read_guard.get(&payload.id).cloned() {
+    if let Some(party) = read_guard.get(&path.id).cloned() {
         drop(read_guard);
         let mut write_guard = state.parties.lock().unwrap();
         let party = Arc::new(Party {
             video: Some(Video::new(&payload.video_url)),
             ..Party::clone(&party) // WARN: Deep clone
         });
-        write_guard.insert(payload.id, Arc::clone(&party));
+        write_guard.insert(path.id, Arc::clone(&party));
         (StatusCode::OK, Json(party).into_response())
     } else {
         (
@@ -264,25 +346,22 @@ async fn attach_video(
     }
 }
 
-#[derive(Deserialize)]
-struct RemoveVideo {
-    id: Snowflake,
-}
 #[axum::debug_handler]
 async fn remove_video(
     State(state): State<AppState>,
-    Json(payload): Json<RemoveVideo>,
+    Path(path): Path<PartyIdPath>
 ) -> impl IntoResponse {
     let read_guard = state.parties.lock().unwrap();
-    if let Some(party) = read_guard.get(&payload.id).cloned() {
+    if let Some(party) = read_guard.get(&path.id).cloned() {
         drop(read_guard);
         let mut write_guard = state.parties.lock().unwrap();
-        write_guard.borrow_mut().insert(
-            payload.id,
-            Arc::new(Party {
-                video: None,
-                ..Party::clone(&party) // WARN: Deep clone
-            }),
+        let party = Arc::new(Party {
+            video: None,
+            ..Party::clone(&party) // WARN: Deep clone
+        });
+        write_guard.insert(
+            path.id,
+            Arc::clone(&party),
         );
         (StatusCode::OK, Json(party).into_response())
     } else {

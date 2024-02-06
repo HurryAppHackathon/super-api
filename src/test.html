@@ -16,15 +16,12 @@
 				Authorization: "Bearer authorization_token_here"
 			  }
 				});
-		socket.emit('message', {
-			author: "Ahmed",
-			content: "Hello"
-		});
-		socket.on("message-back", (msg) => {
+		
+		socket.on("message", (msg) => {
 			console.log(msg);
 		})
 
-		socket.on("auth", (msg) => {
+		socket.on("party-create", (msg) => {
 			console.log(msg);
 		})
 
