@@ -7,7 +7,7 @@
 5. [x] let's create a websocket
 6. [x] send messages
 7. [x] get all messages
-8. [ ] Create real Authentication system (JWT maybe)
+8. [x] Create real Authentication system (JWT maybe)
 9. [ ] join a party
 10. [ ] listen to party events (seek/pause/resume, etc...)
 11. [ ] implement the fully prototype

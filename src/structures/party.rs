@@ -12,8 +12,7 @@ pub struct Party {
     pub video: Option<Video>,
 }
 impl Party {
-    pub fn new(username: &str, name: &str) -> Self {
-        let owner = User::new(username);
+    pub fn new(owner: User, name: &str) -> Self {
         Self {
             name: name.into(),
             owner,

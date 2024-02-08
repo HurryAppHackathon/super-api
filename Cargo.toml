@@ -22,3 +22,5 @@ rs-snowflake = "0.6.0"
 futures = "0.3"
 socketioxide = "0.10.2"
 tower-http = {version= "0.5.1", features = ["cors"]}
+jsonwebtoken = "9.2.0"
+serde_with = { version = "3.6.0", features = ["json"] }

@@ -1,3 +1,5 @@
+
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Serde json error: {0}")]
@@ -8,4 +10,6 @@ pub enum Error {
 
     #[error(transparent)]
     IO(#[from] std::io::Error),
+    #[error("")]
+    JWT(#[from] jsonwebtoken::errors::Error)
 }

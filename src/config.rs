@@ -1,7 +1,5 @@
-use lazy_static::lazy_static;
-
 macro_rules! config {
-    ($($name:ident $type:tt $( = $value: expr)?),* ) => {
+    ($($name:ident $type:tt $( = $value: expr)?)* ) => {
         lazy_static! {
             $(
                 pub static ref $name: $type = std::env::var(stringify!($name)).unwrap_or_else(|_| {
@@ -15,4 +13,5 @@ macro_rules! config {
 
 config! {
     PORT u32 = 3000 // default port 3000
+    SECRET String = "super-secret"
 }

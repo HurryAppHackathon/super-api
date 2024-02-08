@@ -1,3 +1,4 @@
+mod auth;
 mod party;
 
 use axum::{response::IntoResponse, routing::*, Router};
@@ -9,5 +10,7 @@ async fn root() -> impl IntoResponse {
 }
 
 pub fn mount(app: Router<AppState>) -> Router<AppState> {
-    app.nest("/party", party::routes()).route("/", get(root))
+    app.route("/", get(root))
+        .nest("/auth", auth::routes())
+        .nest("/party", party::routes())
 }

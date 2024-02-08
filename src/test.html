@@ -6,22 +6,61 @@
 		<title>Document</title>
 	</head>
 	<body>
+		<form action="">
+			<input id="party_id" type="text" />
+			<button id="join" type="button">Join</button>
+		</form>
+		<form action="">
+			<div class="chat">
+				<div class="message">Ahmed: Hello</div>
+			</div>
+
+			<input id="message" type="text" name="" id="" />
+			<button id="send" type="button">Send</button>
+		</form>
 		<script
 			src="https://cdn.socket.io/4.7.4/socket.io.min.js"
 			integrity="sha384-Gr6Lu2Ajx28mzwyVR8CFkULdCU7kMlZ9UthllibdOSo6qAiN+yXNHqtgdTvFXMT4"
 			crossorigin="anonymous"
 		></script>
-		<script>
-			const socket = io("ws://localhost:3000", {
+		<script defer>
+			function onclick() {
+
+			}
+			const party_id_input = document.getElementById("party_id")
+			const join_btn = document.getElementById("join")
+			const message_input = document.getElementById("message")
+			const send_btn = document.getElementById("send")
+
+			let socket;
+			socket = io("ws://localhost:3000/", {
+				auth: {
+					token: "hello",
+				},
 				withCredentials: true,
 				credentials: "include",
 				extraHeaders: {
 					Authorization: "Bearer authorization_token_here",
 				},
 			});
+			join_btn.onclick = (event) => {
+				event.preventDefault();
+				const str = party_id_input.value;
+				
+			}
+
+
+			
 
 			socket.on("message", (msg) => {
 				console.log(msg);
+			});
+			socket.on("joined", () => {
+				console.log("hi");
+			});
+			socket.on("connect", () => {
+				socket.emit("join", undefined);
+				console.log(socket.id); // x8WIv7-mJelg7on_ALbx
 			});
 		</script>
 	</body>
