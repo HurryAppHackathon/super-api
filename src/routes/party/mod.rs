@@ -29,7 +29,7 @@ async fn create(
     State(state): State<AppState>,
     Json(payload): Json<CreateParty>,
 ) -> impl IntoResponse {
-    let party = Arc::from(Party::new(User::new("test", "test"), &payload.name));
+    let party = Arc::from(Party::new(User::new("test", "test"), &payload.name)); // TODO: get user
     state
         .parties
         .lock()
