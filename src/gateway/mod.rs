@@ -11,13 +11,23 @@ pub struct HandShake {
     token: String,
 }
 
-pub fn on_connect(socket: SocketRef, Data(data): Data<HandShake>, IoState(state): IoState<AppState>) {
-	let token = socket.req_parts().headers.get("Authorization").unwrap().to_str().unwrap();
-	println!("{:?}", state.sessions.lock().unwrap());
-	verify_user(token, &state);
+pub fn on_connect(
+    socket: SocketRef,
+    Data(data): Data<HandShake>,
+    IoState(state): IoState<AppState>,
+) {
+    let token = socket
+        .req_parts()
+        .headers
+        .get("Authorization")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    println!("{:?}", state.sessions.lock().unwrap());
+    verify_user(token, state);
 
-	println!("{data:?}");
-    
+    println!("{data:?}");
+
     // socket.disconnect().ok();
     //
     //     println!("Socket.IO connected: {:?} {:?}", socket.ns(), socket.id);

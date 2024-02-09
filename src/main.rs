@@ -26,7 +26,9 @@ use socketioxide::{
     SocketIo,
 };
 use std::{
-    cell::OnceCell, collections::HashMap, sync::{Arc, Mutex}
+    cell::OnceCell,
+    collections::HashMap,
+    sync::{Arc, Mutex},
 };
 use structures::{Session, User};
 use tokio::net::TcpListener;
@@ -35,21 +37,19 @@ mod config;
 mod error;
 mod prelude;
 
-mod routes;
-mod structures;
-mod middlewares;
 mod extractors;
 mod gateway;
+mod middlewares;
+mod routes;
+mod structures;
 
 use config::*;
 use prelude::*;
 
 use crate::structures::AppState;
 
-
 #[tokio::main]
 async fn main() -> Result<()> {
-
     let state = AppState {
         parties: Arc::new(Mutex::new(HashMap::new())),
         socket: Arc::new(Mutex::new(OnceCell::new())),

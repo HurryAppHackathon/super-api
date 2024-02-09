@@ -1,8 +1,12 @@
-use axum::{async_trait, extract::{FromRequest, Request, State}, http::StatusCode, middleware::Next, response::{IntoResponse, Response}};
+use axum::{
+    async_trait,
+    extract::{FromRequest, Request, State},
+    http::StatusCode,
+    middleware::Next,
+    response::{IntoResponse, Response},
+};
 
 use crate::structures::{AppState, Session, User};
-
-
 
 pub fn verify_user(token: &str, state: &AppState) -> Result<User, Response> {
     let local_session = Session::decode(token.to_string()).map_err(|e| e.into_response())?;
@@ -31,7 +35,6 @@ pub fn verify_user(token: &str, state: &AppState) -> Result<User, Response> {
         )?;
     Ok(user)
 }
-
 
 pub async fn auth(
     State(state): State<AppState>,

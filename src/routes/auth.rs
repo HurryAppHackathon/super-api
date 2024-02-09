@@ -52,11 +52,11 @@ async fn me(State(state): State<AppState>, Json(m): Json<Me>) -> impl IntoRespon
     let session = Session::decode(m.token).unwrap();
     println!("{:?} {:?}", session, state.sessions);
     if state
-    .sessions
-    .lock()
-    .unwrap()
-    .iter()
-    .any(|s| s.id == session.id)
+        .sessions
+        .lock()
+        .unwrap()
+        .iter()
+        .any(|s| s.id == session.id)
     {
         if let Some(user) = state
             .users

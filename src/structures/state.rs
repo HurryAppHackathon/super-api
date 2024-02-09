@@ -1,5 +1,7 @@
 use std::{
-    cell::OnceCell, collections::HashMap, sync::{Arc, Mutex}
+    cell::OnceCell,
+    collections::HashMap,
+    sync::{Arc, Mutex},
 };
 
 use socketioxide::SocketIo;

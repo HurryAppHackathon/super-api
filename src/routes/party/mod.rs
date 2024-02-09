@@ -8,7 +8,6 @@ use serde::Deserialize;
 
 use crate::{extractors::UserRequest, structures::*};
 
-
 #[derive(Deserialize)]
 struct CreateParty {
     name: Arc<str>,
