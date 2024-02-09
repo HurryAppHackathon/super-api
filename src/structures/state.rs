@@ -1,6 +1,5 @@
 use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
+    cell::OnceCell, collections::HashMap, sync::{Arc, Mutex}
 };
 
 use socketioxide::SocketIo;
@@ -12,5 +11,5 @@ pub struct AppState {
     pub users: Arc<Mutex<Vec<User>>>,
     pub sessions: Arc<Mutex<Vec<Session>>>,
     pub parties: Arc<Mutex<HashMap<Snowflake, Arc<Party>>>>,
-    pub socket: Arc<Mutex<SocketIo>>,
+    pub socket: Arc<Mutex<OnceCell<SocketIo>>>,
 }

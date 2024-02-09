@@ -6,9 +6,8 @@ use std::{collections::HashMap, sync::Arc};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::*, Json, Router};
 use serde::Deserialize;
 
-use crate::structures::*;
+use crate::{extractors::UserRequest, structures::*};
 
-use super::UserRequest;
 
 #[derive(Deserialize)]
 struct CreateParty {
@@ -40,12 +39,12 @@ async fn create(
         .lock()
         .unwrap()
         .insert(Snowflake::generate(), Arc::clone(&party));
-    state
-        .socket
-        .lock()
-        .unwrap()
-        .emit("party-create", party.clone())
-        .ok();
+    // state
+    //     .socket
+    //     .lock()
+    //     .unwrap()
+    //     .emit("party-create", party.clone())
+    //     .ok(); // FIXME
     Json(party)
 }
 

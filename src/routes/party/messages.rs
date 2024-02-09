@@ -42,12 +42,12 @@ async fn create(
         party.messages.push(Arc::clone(&message));
         guard.insert(path.id, Arc::new(party));
 
-        state
-            .socket
-            .lock()
-            .unwrap()
-            .emit("message", Arc::clone(&message))
-            .ok();
+        // state
+        //     .socket
+        //     .lock()
+        //     .unwrap()
+        //     .emit("message", Arc::clone(&message))
+        //     .ok(); // FIXME
 
         (StatusCode::OK, Json(message).into_response())
     } else {

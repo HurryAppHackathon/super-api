@@ -26,8 +26,7 @@ use socketioxide::{
     SocketIo,
 };
 use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
+    cell::OnceCell, collections::HashMap, sync::{Arc, Mutex}
 };
 use structures::{Session, User};
 use tokio::net::TcpListener;
@@ -38,57 +37,30 @@ mod prelude;
 
 mod routes;
 mod structures;
+mod middlewares;
+mod extractors;
+mod gateway;
 
 use config::*;
 use prelude::*;
 
 use crate::structures::AppState;
 
-#[derive(Deserialize, Debug, Serialize)]
-struct M {
-    author: Arc<str>,
-    content: Arc<str>,
-}
-#[derive(Deserialize, Debug)]
-struct HandShake {
-    token: String,
-}
-
-fn on_connect(_socket: SocketRef, Data(data): Data<HandShake>) {
-    println!("{data:?}");
-    // socket.disconnect().ok();
-    //
-    //     println!("Socket.IO connected: {:?} {:?}", socket.ns(), socket.id);
-    //     // socket.bin(binary)
-    //     socket.on("join", |socket: SocketRef, Data::<Value>(data), Bin(bin)| {
-    //         println!("joined?");
-    //         socket.bin(bin).emit("joined", ()).ok();
-    //
-    //         // let message = Message::new(data.content, User::new(&data.author));
-    //         // println!("Received event: {:?} {:?}", message, bin);
-    //         // socket.bin(bin).emit("message-back", message).ok();
-    //     });
-    //
-    //     // socket.on(
-    //     //     "message-with-ack",
-    //     //     |Data::<Value>(data), ack: AckSender, Bin(bin)| {
-    //     //         println!("Received event: {:?} {:?}", data, bin);
-    //     //         ack.bin(bin).send(data).ok();
-    //     //     },
-    //     // );
-}
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv::dotenv().ok();
-    let (layer, io) = SocketIo::new_layer();
-    io.ns("/", on_connect);
+
     let state = AppState {
         parties: Arc::new(Mutex::new(HashMap::new())),
-        socket: Arc::new(Mutex::new(io)),
+        socket: Arc::new(Mutex::new(OnceCell::new())),
         users: Arc::new(Mutex::new(vec![])),
         sessions: Arc::new(Mutex::new(vec![])),
     };
+    dotenv::dotenv().ok();
+    let (layer, io) = SocketIo::builder().with_state(state.clone()).build_layer();
+    state.socket.lock().unwrap().set(io.clone()).ok();
+
+    io.ns("/", gateway::on_connect);
     let listener = TcpListener::bind(format!("127.0.0.1:{}", *PORT)).await?;
 
     println!("🚀 Server is running: http://{}", listener.local_addr()?);
