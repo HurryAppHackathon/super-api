@@ -1,5 +1,3 @@
-
-
 use super::{AppState, Private, Session, User};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::*, Json, Router};
 use serde::Deserialize;
@@ -53,14 +51,20 @@ struct Me {
 async fn me(State(state): State<AppState>, Json(m): Json<Me>) -> impl IntoResponse {
     let session = Session::decode(m.token).unwrap();
     println!("{:?} {:?}", session, state.sessions);
-    if let Some(_) = state
-        .sessions
-        .lock()
-        .unwrap()
-        .iter()
-        .find(|s| dbg!(s.id == session.id))
+    if state
+    .sessions
+    .lock()
+    .unwrap()
+    .iter()
+    .any(|s| s.id == session.id)
     {
-        if let Some(user) = state.users.lock().unwrap().iter().find(|u| u.id == session.user_id) {
+        if let Some(user) = state
+            .users
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|u| u.id == session.user_id)
+        {
             return Json(user).into_response();
         }
         (StatusCode::BAD_REQUEST, Json("User not found")).into_response()

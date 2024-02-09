@@ -32,7 +32,10 @@ async fn create(
         drop(guard);
 
         let mut guard = state.parties.lock().unwrap();
-        let message = Arc::new(Message::new(payload.content, User::new(&payload.author, "as"))); // TODO: get user
+        let message = Arc::new(Message::new(
+            payload.content,
+            User::new(&payload.author, "as"),
+        )); // TODO: get user
         let mut party = Party {
             ..Party::clone(&party)
         };

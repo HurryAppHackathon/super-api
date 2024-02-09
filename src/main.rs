@@ -9,7 +9,15 @@ extern crate serde_with;
 #[macro_use]
 extern crate lazy_static;
 
-use axum::{serve, Router};
+use axum::{
+    async_trait,
+    body::Bytes,
+    extract::{FromRequest, Request, State},
+    http::StatusCode,
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
+    serve, Router,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +29,7 @@ use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
+use structures::{Session, User};
 use tokio::net::TcpListener;
 
 mod config;
@@ -72,24 +81,10 @@ fn on_connect(_socket: SocketRef, Data(data): Data<HandShake>) {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
-    // ! some performance tests
-    #[allow(unused_mut)]
-    let mut hash = HashMap::new();
-    // let mut rng = rand::thread_rng();
-    // let mut i = 0;
-    // loop {
-    //     hash.insert(rng.gen(), Arc::new(Party::new("username", "name")));
-    //     if i == 20000 {
-    //         break;
-    //     }
-    //     i += 1;
-    // }
-
     let (layer, io) = SocketIo::new_layer();
     io.ns("/", on_connect);
-
     let state = AppState {
-        parties: Arc::new(Mutex::new(hash)),
+        parties: Arc::new(Mutex::new(HashMap::new())),
         socket: Arc::new(Mutex::new(io)),
         users: Arc::new(Mutex::new(vec![])),
         sessions: Arc::new(Mutex::new(vec![])),
@@ -98,8 +93,74 @@ async fn main() -> Result<()> {
 
     println!("🚀 Server is running: http://{}", listener.local_addr()?);
 
-    let app = routes::mount(Router::new()).layer(layer).with_state(state);
+    let app = routes::mount(Router::new())
+        .layer(middleware::from_fn(test))
+        .layer(layer)
+        .with_state(state);
     serve(listener, app).await?;
 
     Ok(())
+}
+
+async fn test(req: Request, next: Next) -> Result<impl IntoResponse, Response> {
+    Ok(next.run(req).await)
+}
+#[derive(Default)]
+pub struct UserRequest {
+    pub user: User,
+}
+
+// we must implement `FromRequest` (and not `FromRequestParts`) to consume the body
+#[async_trait]
+impl FromRequest<AppState> for UserRequest {
+    type Rejection = Response;
+
+    async fn from_request(req: Request, state: &AppState) -> Result<Self, Self::Rejection> {
+        // TODO: create custome errors
+        let token = req
+            .headers()
+            .get("Authorization")
+            .ok_or(
+                (
+                    StatusCode::UNAUTHORIZED,
+                    StatusCode::UNAUTHORIZED.to_string(),
+                )
+                    .into_response(),
+            )?
+            .to_str()
+            .map_err(|_| {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    StatusCode::UNAUTHORIZED.to_string(),
+                )
+                    .into_response()
+            })?;
+
+        let local_session = Session::decode(token.to_string()).map_err(|e| e.into_response())?;
+        let sessions = state.sessions.lock().unwrap();
+
+        let session = sessions.iter().find(|s| s.id == local_session.id).ok_or(
+            (
+                StatusCode::UNAUTHORIZED,
+                StatusCode::UNAUTHORIZED.to_string(),
+            )
+                .into_response(),
+        )?;
+
+        let users = state.users.lock().unwrap();
+
+        let user = users
+            .iter()
+            .find(|u| u.id == session.user_id)
+            .cloned()
+            .ok_or(
+                (
+                    StatusCode::UNAUTHORIZED,
+                    StatusCode::UNAUTHORIZED.to_string(),
+                )
+                    .into_response(),
+            )?;
+
+        Ok(Self { user })
+    }
 }

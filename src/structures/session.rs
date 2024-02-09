@@ -12,13 +12,13 @@ pub struct Session {
 }
 
 impl Session {
-	pub fn new(user_id: Snowflake) -> Self {
-		Self {
-			id: Snowflake::generate(),
-			user_id,
+    pub fn new(user_id: Snowflake) -> Self {
+        Self {
+            id: Snowflake::generate(),
+            user_id,
             exp: 10000000000, // later
-		}
-	}
+        }
+    }
     pub fn gen_token(&self) -> Result<String> {
         let token = encode(
             &Header::default(),

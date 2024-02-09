@@ -1,4 +1,4 @@
-
+use axum::{http::StatusCode, response::IntoResponse};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -11,5 +11,11 @@ pub enum Error {
     #[error(transparent)]
     IO(#[from] std::io::Error),
     #[error("")]
-    JWT(#[from] jsonwebtoken::errors::Error)
+    Jwt(#[from] jsonwebtoken::errors::Error),
+}
+
+impl IntoResponse for Error {
+    fn into_response(self) -> axum::response::Response {
+        StatusCode::BAD_REQUEST.into_response()
+    }
 }

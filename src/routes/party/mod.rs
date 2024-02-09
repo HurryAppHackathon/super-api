@@ -6,7 +6,7 @@ use std::{collections::HashMap, sync::Arc};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::*, Json, Router};
 use serde::Deserialize;
 
-use crate::structures::*;
+use crate::{structures::*, UserRequest};
 
 #[derive(Deserialize)]
 struct CreateParty {
@@ -18,10 +18,13 @@ struct DeleteParty {
     id: Snowflake,
 }
 
-async fn all(State(state): State<AppState>) -> impl IntoResponse {
+async fn all(
+    State(state): State<AppState>,
+    UserRequest { user }: UserRequest,
+) -> impl IntoResponse {
     let guard = state.parties.lock().unwrap();
     let hash: HashMap<_, _> = guard.clone(); // WARN: Deep clone
-    Json(hash)
+    Json(user)
 }
 
 #[axum::debug_handler]
@@ -49,7 +52,7 @@ async fn remove(
     State(state): State<AppState>,
     Json(payload): Json<DeleteParty>,
 ) -> impl IntoResponse {
-    if let Some(_) = state.parties.lock().unwrap().remove(&payload.id) {
+    if state.parties.lock().unwrap().remove(&payload.id).is_some() {
         (StatusCode::OK, Json("Party has been deleted"))
     } else {
         (StatusCode::NOT_FOUND, Json("Party not found"))

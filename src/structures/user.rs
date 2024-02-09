@@ -4,15 +4,12 @@ use serde::{Deserialize, Serialize};
 
 use super::*;
 
-
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum Private<T> {
     Hidden(T),
     Shown(T),
 }
-
-
 
 impl<T: Default> Default for Private<T> {
     fn default() -> Self {
@@ -24,7 +21,6 @@ impl<T> From<T> for Private<T> {
         Self::Hidden(t)
     }
 }
-
 
 impl<T: Clone> Private<T> {
     pub fn is_private(&self) -> bool {
@@ -50,22 +46,20 @@ impl<T> std::ops::Deref for Private<T> {
     }
 }
 
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde_as]
 pub struct User {
     pub id: Snowflake,
     pub username: Arc<str>,
     #[serde(skip_serializing_if = "Private::is_private")]
-    pub hash_password: Private<Arc<str>>
+    pub hash_password: Private<Arc<str>>,
 }
 impl Default for User {
     fn default() -> Self {
         Self {
             id: <_>::default(),
             username: Arc::from(""),
-            hash_password: Private::Hidden(Arc::from(""))
+            hash_password: Private::Hidden(Arc::from("")),
         }
     }
 }
