@@ -6,7 +6,9 @@ use std::{collections::HashMap, sync::Arc};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::*, Json, Router};
 use serde::Deserialize;
 
-use crate::{structures::*, UserRequest};
+use crate::structures::*;
+
+use super::UserRequest;
 
 #[derive(Deserialize)]
 struct CreateParty {

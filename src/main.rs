@@ -93,74 +93,10 @@ async fn main() -> Result<()> {
 
     println!("🚀 Server is running: http://{}", listener.local_addr()?);
 
-    let app = routes::mount(Router::new())
-        .layer(middleware::from_fn(test))
+    let app = routes::mount(Router::new(), state.clone())
         .layer(layer)
         .with_state(state);
     serve(listener, app).await?;
 
     Ok(())
-}
-
-async fn test(req: Request, next: Next) -> Result<impl IntoResponse, Response> {
-    Ok(next.run(req).await)
-}
-#[derive(Default)]
-pub struct UserRequest {
-    pub user: User,
-}
-
-// we must implement `FromRequest` (and not `FromRequestParts`) to consume the body
-#[async_trait]
-impl FromRequest<AppState> for UserRequest {
-    type Rejection = Response;
-
-    async fn from_request(req: Request, state: &AppState) -> Result<Self, Self::Rejection> {
-        // TODO: create custome errors
-        let token = req
-            .headers()
-            .get("Authorization")
-            .ok_or(
-                (
-                    StatusCode::UNAUTHORIZED,
-                    StatusCode::UNAUTHORIZED.to_string(),
-                )
-                    .into_response(),
-            )?
-            .to_str()
-            .map_err(|_| {
-                (
-                    StatusCode::UNAUTHORIZED,
-                    StatusCode::UNAUTHORIZED.to_string(),
-                )
-                    .into_response()
-            })?;
-
-        let local_session = Session::decode(token.to_string()).map_err(|e| e.into_response())?;
-        let sessions = state.sessions.lock().unwrap();
-
-        let session = sessions.iter().find(|s| s.id == local_session.id).ok_or(
-            (
-                StatusCode::UNAUTHORIZED,
-                StatusCode::UNAUTHORIZED.to_string(),
-            )
-                .into_response(),
-        )?;
-
-        let users = state.users.lock().unwrap();
-
-        let user = users
-            .iter()
-            .find(|u| u.id == session.user_id)
-            .cloned()
-            .ok_or(
-                (
-                    StatusCode::UNAUTHORIZED,
-                    StatusCode::UNAUTHORIZED.to_string(),
-                )
-                    .into_response(),
-            )?;
-
-        Ok(Self { user })
-    }
 }
