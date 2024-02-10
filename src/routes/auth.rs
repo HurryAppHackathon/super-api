@@ -42,7 +42,7 @@ async fn login(State(state): State<AppState>, Json(payload): Json<Register>) -> 
         state.sessions.lock().unwrap().push(session.clone());
         (StatusCode::OK, Json(session.gen_token().unwrap())).into_response()
     } else {
-        (StatusCode::UNAUTHORIZED, Json("asd")).into_response()
+        (StatusCode::UNAUTHORIZED, Json("Invalid credentials")).into_response()
     }
 }
 
