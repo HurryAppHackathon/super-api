@@ -10,12 +10,12 @@ pub enum Error {
 
     #[error(transparent)]
     IO(#[from] std::io::Error),
-    #[error("")]
+    #[error("{0}")]
     Jwt(#[from] jsonwebtoken::errors::Error),
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
-        StatusCode::BAD_REQUEST.into_response()
+        (StatusCode::BAD_REQUEST, self.to_string()).into_response()
     }
 }
