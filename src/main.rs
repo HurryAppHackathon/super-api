@@ -50,17 +50,21 @@ use crate::structures::AppState;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv::dotenv().ok();
+
     let state = AppState {
         parties: Arc::new(Mutex::new(HashMap::new())),
         socket: Arc::new(Mutex::new(W(OnceCell::new()))),
         users: Arc::new(Mutex::new(vec![])),
         sessions: Arc::new(Mutex::new(vec![])),
     };
-    dotenv::dotenv().ok();
+
     let (layer, io) = SocketIo::builder().with_state(state.clone()).build_layer();
+
     state.socket.lock().unwrap().0.set(io.clone()).ok();
 
     io.ns("/", gateway::on_connect);
+
     let listener = TcpListener::bind(format!("127.0.0.1:{}", *PORT)).await?;
 
     println!("🚀 Server is running: http://{}", listener.local_addr()?);
@@ -68,6 +72,7 @@ async fn main() -> Result<()> {
     let app = routes::mount(Router::new(), state.clone())
         .layer(layer)
         .with_state(state);
+
     serve(listener, app).await?;
 
     Ok(())

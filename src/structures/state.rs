@@ -4,8 +4,7 @@ use std::{
 
 use socketioxide::SocketIo;
 
-use crate::W;
-
+use crate::prelude::*;
 use super::*;
 
 struct MySocket {
@@ -20,10 +19,11 @@ pub struct AppState {
     pub socket: Arc<Mutex<W<OnceCell<SocketIo>>>>,
 }
 
+
 impl Deref for W<OnceCell<SocketIo>>  {
     type Target = SocketIo;
 
     fn deref(&self) -> &Self::Target {
-        self.0.get().unwrap()
+            self.0.get().unwrap()
     }
 }

@@ -11,13 +11,14 @@ struct Register {
 
 #[axum::debug_handler]
 async fn register(
+    // TODO: Create a validator extractor to get credentials
     State(state): State<AppState>,
     Json(payload): Json<Register>,
 ) -> impl IntoResponse {
-    let user = User::new(&payload.username, &payload.password);
 
+    let user = User::new(&payload.username, &payload.password);
     let session = Session::new(user.id);
-    let token = session.gen_token().unwrap(); // please do not crash
+    let token = session.gen_token().unwrap(); // WARN: please do not crash
     state.sessions.lock().unwrap().push(session.clone());
     state.users.lock().unwrap().push(user);
 
