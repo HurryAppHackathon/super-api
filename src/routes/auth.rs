@@ -74,7 +74,7 @@ async fn me(State(state): State<AppState>, Json(m): Json<Me>) -> impl IntoRespon
 }
 pub fn routes() -> Router<AppState> {
     Router::new()
-        .route("/all", get(all)) // TODO: remove on production
+        .route("/all", get(all)) // FIXME: remove on production
         .route("/me", get(me))
         .route("/register", post(register))
         .route("/login", post(login))

@@ -1,7 +1,7 @@
 use axum::{
     async_trait,
-    extract::{FromRequest, Request},
-    http::StatusCode,
+    extract::{FromRequest, FromRequestParts, Request},
+    http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
 };
 
@@ -17,12 +17,12 @@ pub struct UserRequest {
 
 // we must implement `FromRequest` (and not `FromRequestParts`) to consume the body
 #[async_trait]
-impl FromRequest<AppState> for UserRequest {
+impl FromRequestParts<AppState> for UserRequest {
     type Rejection = Response;
 
-    async fn from_request(req: Request, state: &AppState) -> Result<Self, Self::Rejection> {
-        let token = req
-            .headers()
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+        let token = parts
+            .headers
             .get("Authorization")
             .ok_or(
                 (
@@ -42,5 +42,34 @@ impl FromRequest<AppState> for UserRequest {
 
         let user = middlewares::verify_user(token, state)?;
         Ok(Self { user })
-    }
 }
+}
+
+// #[async_trait]
+// impl FromRequest<AppState> for UserRequest {
+//     type Rejection = Response;
+//
+//     async fn from_request(req: Request, state: &AppState) -> Result<Self, Self::Rejection> {
+//         let token = req
+//             .headers()
+//             .get("Authorization")
+//             .ok_or(
+//                 (
+//                     StatusCode::UNAUTHORIZED,
+//                     StatusCode::UNAUTHORIZED.to_string(),
+//                 )
+//                     .into_response(),
+//             )?
+//             .to_str()
+//             .map_err(|_| {
+//                 (
+//                     StatusCode::UNAUTHORIZED,
+//                     StatusCode::UNAUTHORIZED.to_string(),
+//                 )
+//                     .into_response()
+//             })?;
+//
+//         let user = middlewares::verify_user(token, state)?;
+//         Ok(Self { user })
+//     }
+// }

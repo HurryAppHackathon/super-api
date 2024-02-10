@@ -1,4 +1,4 @@
-#![allow(unused)] // TODO: remove on production
+#![allow(unused)] // FIXME: remove on production
 //! Hurry app hackathon challenge
 //! The primary focus of this application revolves around synchronizing view streams among party users.
 
@@ -52,13 +52,13 @@ use crate::structures::AppState;
 async fn main() -> Result<()> {
     let state = AppState {
         parties: Arc::new(Mutex::new(HashMap::new())),
-        socket: Arc::new(Mutex::new(OnceCell::new())),
+        socket: Arc::new(Mutex::new(W(OnceCell::new()))),
         users: Arc::new(Mutex::new(vec![])),
         sessions: Arc::new(Mutex::new(vec![])),
     };
     dotenv::dotenv().ok();
     let (layer, io) = SocketIo::builder().with_state(state.clone()).build_layer();
-    state.socket.lock().unwrap().set(io.clone()).ok();
+    state.socket.lock().unwrap().0.set(io.clone()).ok();
 
     io.ns("/", gateway::on_connect);
     let listener = TcpListener::bind(format!("127.0.0.1:{}", *PORT)).await?;

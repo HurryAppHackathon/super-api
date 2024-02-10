@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{ops::Deref, sync::Arc};
 
 use axum::{
     extract::{Path, State},
@@ -8,6 +8,8 @@ use axum::{
     Json, Router,
 };
 use serde::Deserialize;
+
+use crate::extractors::UserRequest;
 
 use super::{AppState, Message, Party, Snowflake, User};
 
@@ -24,6 +26,7 @@ struct CreateMessage {
 async fn create(
     State(state): State<AppState>,
     Path(path): Path<PartyIdPath>,
+    UserRequest { user }: UserRequest,
     Json(payload): Json<CreateMessage>,
 ) -> impl IntoResponse {
     let guard = state.parties.lock().unwrap();
@@ -32,22 +35,19 @@ async fn create(
         drop(guard);
 
         let mut guard = state.parties.lock().unwrap();
-        let message = Arc::new(Message::new(
-            payload.content,
-            User::new(&payload.author, "as"),
-        )); // TODO: get user
+        let message = Arc::new(Message::new(payload.content, user));
         let mut party = Party {
             ..Party::clone(&party)
         };
         party.messages.push(Arc::clone(&message));
         guard.insert(path.id, Arc::new(party));
 
-        // state
-        //     .socket
-        //     .lock()
-        //     .unwrap()
-        //     .emit("message", Arc::clone(&message))
-        //     .ok(); // FIXME
+        state
+            .socket
+            .lock()
+            .unwrap()
+            .emit("message", Arc::clone(&message))
+            .ok();
 
         (StatusCode::OK, Json(message).into_response())
     } else {

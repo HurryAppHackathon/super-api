@@ -30,20 +30,16 @@ async fn all(
 #[axum::debug_handler]
 async fn create(
     State(state): State<AppState>,
+    UserRequest { user }: UserRequest,
     Json(payload): Json<CreateParty>,
 ) -> impl IntoResponse {
-    let party = Arc::from(Party::new(User::new("test", "test"), &payload.name)); // TODO: get user
+    let party = Arc::from(Party::new(user, &payload.name));
     state
         .parties
         .lock()
         .unwrap()
         .insert(Snowflake::generate(), Arc::clone(&party));
-    // state
-    //     .socket
-    //     .lock()
-    //     .unwrap()
-    //     .emit("party-create", party.clone())
-    //     .ok(); // FIXME
+
     Json(party)
 }
 
