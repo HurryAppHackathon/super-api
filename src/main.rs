@@ -9,15 +9,9 @@ extern crate serde_with;
 #[macro_use]
 extern crate lazy_static;
 
-use axum::{
-    serve, Router,
-};
+use axum::{serve, Router};
 
-
-
-use socketioxide::{
-    SocketIo,
-};
+use socketioxide::SocketIo;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex, OnceLock},

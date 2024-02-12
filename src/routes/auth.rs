@@ -48,7 +48,10 @@ async fn login(State(state): State<AppState>, Json(payload): Json<Register>) -> 
 
 // TODO: move this into "/user" router
 #[axum::debug_handler]
-async fn me(State(_state): State<AppState>, UserRequest { user }: UserRequest) -> impl IntoResponse {
+async fn me(
+    State(_state): State<AppState>,
+    UserRequest { user }: UserRequest,
+) -> impl IntoResponse {
     Json(user)
 }
 pub fn routes() -> Router<AppState> {

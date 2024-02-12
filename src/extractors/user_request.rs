@@ -1,13 +1,11 @@
 use axum::{
     async_trait,
-    extract::{FromRequestParts},
+    extract::FromRequestParts,
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
 };
 
-use crate::{
-    structures::{AppState, User},
-};
+use crate::structures::{AppState, User};
 
 #[derive(Default)]
 pub struct UserRequest {

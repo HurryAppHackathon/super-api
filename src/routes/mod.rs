@@ -3,7 +3,7 @@ mod party;
 
 use axum::{
     middleware::{self},
-    response::{IntoResponse},
+    response::IntoResponse,
     routing::*,
     Router,
 };
