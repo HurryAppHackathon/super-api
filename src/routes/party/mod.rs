@@ -17,9 +17,7 @@ struct DeleteParty {
     id: Snowflake,
 }
 
-async fn all(
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+async fn all(State(state): State<AppState>) -> impl IntoResponse {
     let guard = state.parties.lock().unwrap();
     let hash: HashMap<_, _> = guard.clone(); // WARN: Deep clone
     Json(hash)

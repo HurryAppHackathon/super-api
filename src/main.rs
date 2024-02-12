@@ -1,4 +1,4 @@
-// #![allow(unused)] // FIXME: remove on production
+// #![allow(unused)] // x: remove on production
 //! Hurry app hackathon challenge
 //! The primary focus of this application revolves around synchronizing view streams among party users.
 
@@ -10,27 +10,19 @@ extern crate serde_with;
 extern crate lazy_static;
 
 use axum::{
-    async_trait,
-    body::Bytes,
-    extract::{FromRequest, Request, State},
-    http::StatusCode,
-    middleware::{self, Next},
-    response::{IntoResponse, Response},
     serve, Router,
 };
 
-use serde::{Deserialize, Serialize};
+
 
 use socketioxide::{
-    extract::{Data, SocketRef},
     SocketIo,
 };
 use std::{
-    cell::OnceCell,
     collections::HashMap,
     sync::{Arc, Mutex, OnceLock},
 };
-use structures::{Session, User};
+
 use tokio::net::TcpListener;
 
 mod config;

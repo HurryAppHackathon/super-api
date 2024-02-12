@@ -15,7 +15,6 @@ async fn register(
     State(state): State<AppState>,
     Json(payload): Json<Register>,
 ) -> impl IntoResponse {
-
     let user = User::new(&payload.username, &payload.password);
     let session = Session::new(user.id);
     let token = session.gen_token().unwrap(); // WARN: please do not crash
@@ -49,12 +48,11 @@ async fn login(State(state): State<AppState>, Json(payload): Json<Register>) -> 
 
 // TODO: move this into "/user" router
 #[axum::debug_handler]
-async fn me(State(state): State<AppState>, UserRequest { user }: UserRequest) -> impl IntoResponse {
-    return Json(user);
+async fn me(State(_state): State<AppState>, UserRequest { user }: UserRequest) -> impl IntoResponse {
+    Json(user)
 }
 pub fn routes() -> Router<AppState> {
     Router::new()
-        .route("/all", get(all)) // FIXME: remove on production
         .route("/me", get(me))
         .route("/register", post(register))
         .route("/login", post(login))

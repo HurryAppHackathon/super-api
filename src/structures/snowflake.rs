@@ -16,7 +16,6 @@ lazy_static! {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Snowflake(pub i64);
 
-
 impl TryFrom<String> for Snowflake {
     type Error = std::num::ParseIntError;
 

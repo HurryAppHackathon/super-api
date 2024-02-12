@@ -2,11 +2,8 @@ mod auth;
 mod party;
 
 use axum::{
-    async_trait,
-    extract::{FromRequest, Request, State},
-    http::StatusCode,
-    middleware::{self, Next},
-    response::{IntoResponse, Response},
+    middleware::{self},
+    response::{IntoResponse},
     routing::*,
     Router,
 };

@@ -1,12 +1,11 @@
 use axum::{
     async_trait,
-    extract::{FromRequest, FromRequestParts, Request},
+    extract::{FromRequestParts},
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
 };
 
 use crate::{
-    middlewares,
     structures::{AppState, User},
 };
 
@@ -21,7 +20,7 @@ impl FromRequestParts<AppState> for UserRequest {
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state: &AppState,
+        _state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         if let Some(user) = parts.extensions.get::<User>().cloned() {
             Ok(Self { user })

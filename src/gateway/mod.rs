@@ -1,14 +1,13 @@
-use std::sync::{Arc, Mutex};
 
-use axum::extract::State;
-use serde::{Deserialize, Serialize};
+
+
+use serde::{Deserialize};
 use serde_json::Value;
 use socketioxide::extract::{Data, SocketRef, State as IoState};
 
 use crate::{
-    extractors::UserRequest,
     middlewares::verify_user,
-    structures::{AppState, Snowflake, User},
+    structures::{AppState, Snowflake},
 };
 
 #[derive(Deserialize, Debug)]
@@ -23,7 +22,7 @@ struct JoinParty {
 
 pub fn on_connect(
     socket: SocketRef,
-    Data(data): Data<HandShake>,
+    Data(_data): Data<HandShake>,
     IoState(state): IoState<AppState>,
 ) {
     let token = socket
@@ -35,16 +34,17 @@ pub fn on_connect(
         .unwrap();
     println!("{token}");
     println!("{:?}", state.sessions.lock().unwrap());
-    
-    if let Ok(user) = verify_user(token, state) {
+
+    if let Ok(_user) = verify_user(token, state) {
         println!("creating listners for {}", socket.id);
         socket.on(
             "join",
-            |socket: SocketRef, Data::<JoinParty>(data), IoState(state): IoState<AppState>| {
+            |_socket: SocketRef, Data::<JoinParty>(data), IoState(state): IoState<AppState>| {
                 println!("join request party: {:?}", data.id);
                 let parties = state.parties.lock().unwrap();
-                if let Some(party) = parties.get(&Snowflake::try_from(data.id).unwrap()) { // FIXME
+                if let Some(_party) = parties.get(&Snowflake::try_from(data.id).unwrap()) {
                     println!("sending joined");
+                    // TODO: send joined back
                     // socket.(socket.id).emit("joined", party).ok();
                 } else {
                     println!("party not found")
@@ -68,7 +68,6 @@ pub fn on_connect(
         )
     } else {
         println!("Invalid token ");
-
     }
 
     // socket.disconnect().ok();

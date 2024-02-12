@@ -1,4 +1,4 @@
-use std::{ops::Deref, sync::Arc};
+use std::{sync::Arc};
 
 use axum::{
     extract::{Path, State},
@@ -11,7 +11,7 @@ use serde::Deserialize;
 
 use crate::extractors::UserRequest;
 
-use super::{AppState, Message, Party, Snowflake, User};
+use super::{AppState, Message, Party, Snowflake};
 
 #[derive(Deserialize)]
 struct PartyIdPath {
@@ -42,10 +42,7 @@ async fn create(
         party.messages.push(Arc::clone(&message));
         guard.insert(path.id, Arc::new(party));
 
-        state
-            .socket
-            .emit("message", Arc::clone(&message))
-            .ok();
+        state.socket.emit("message", Arc::clone(&message)).ok();
 
         (StatusCode::OK, Json(message).into_response())
     } else {

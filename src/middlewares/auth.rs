@@ -1,6 +1,5 @@
 use axum::{
-    async_trait,
-    extract::{FromRequest, Request, State},
+    extract::{Request, State},
     http::StatusCode,
     middleware::Next,
     response::{IntoResponse, Response},
