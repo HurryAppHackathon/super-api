@@ -1,5 +1,5 @@
 use std::{
-    cell::OnceCell, collections::HashMap, ops::Deref, sync::{Arc, Mutex}
+    cell::OnceCell, collections::HashMap, ops::Deref, sync::{Arc, Mutex, OnceLock}
 };
 
 use socketioxide::SocketIo;
@@ -16,11 +16,11 @@ pub struct AppState {
     pub users: Arc<Mutex<Vec<User>>>,
     pub sessions: Arc<Mutex<Vec<Session>>>,
     pub parties: Arc<Mutex<HashMap<Snowflake, Arc<Party>>>>,
-    pub socket: Arc<Mutex<W<OnceCell<SocketIo>>>>,
+    pub socket: W<OnceLock<SocketIo>>
 }
 
 
-impl Deref for W<OnceCell<SocketIo>>  {
+impl Deref for W<OnceLock<SocketIo>>  {
     type Target = SocketIo;
 
     fn deref(&self) -> &Self::Target {

@@ -24,33 +24,26 @@
 			crossorigin="anonymous"
 		></script>
 		<script defer>
-			function onclick() {
-
-			}
-			const party_id_input = document.getElementById("party_id")
-			const join_btn = document.getElementById("join")
-			const message_input = document.getElementById("message")
-			const send_btn = document.getElementById("send")
+			function onclick() {}
+			const party_id_input = document.getElementById("party_id");
+			const join_btn = document.getElementById("join");
+			const message_input = document.getElementById("message");
+			const send_btn = document.getElementById("send");
 
 			let socket;
-			socket = io("ws://localhost:3000/", {
+			socket = io("ws://localhost:3000", {
 				auth: {
 					token: "hello",
 				},
-				withCredentials: true,
-				credentials: "include",
 				extraHeaders: {
-					Authorization: "Bearer authorization_token_here",
+					Authorization:
+					"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NzE1NTM4MTQyMDU5MDg5MTAxMCwidXNlcl9pZCI6NzE1NTM4MTQyMDU5MDg5MTAwOSwiZXhwIjoxMDAwMDAwMDAwMH0.rMaa7RxptnzK1cRhT2PBw6eX3tquuQJFSMZMb7ZEHH8",
 				},
 			});
 			join_btn.onclick = (event) => {
 				event.preventDefault();
 				const str = party_id_input.value;
-				
-			}
-
-
-			
+			};
 
 			socket.on("message", (msg) => {
 				console.log(msg);
@@ -59,8 +52,12 @@
 				console.log("hi");
 			});
 			socket.on("connect", () => {
-				socket.emit("join", undefined);
-				console.log(socket.id); // x8WIv7-mJelg7on_ALbx
+				console.log("connected to the websocket!");
+				
+			});
+			socket.emit("join", { id: "7155381420590891012" });
+			socket.on("joined", () => {
+				console.log("hm?");
 			});
 		</script>
 	</body>

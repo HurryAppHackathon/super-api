@@ -15,61 +15,22 @@ pub struct UserRequest {
     pub user: User,
 }
 
-// we must implement `FromRequest` (and not `FromRequestParts`) to consume the body
 #[async_trait]
 impl FromRequestParts<AppState> for UserRequest {
     type Rejection = Response;
 
-    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
-        let token = parts
-            .headers
-            .get("Authorization")
-            .ok_or(
-                (
-                    StatusCode::UNAUTHORIZED,
-                    StatusCode::UNAUTHORIZED.to_string(),
-                )
-                    .into_response(),
-            )?
-            .to_str()
-            .map_err(|_| {
-                (
-                    StatusCode::UNAUTHORIZED,
-                    StatusCode::UNAUTHORIZED.to_string(),
-                )
-                    .into_response()
-            })?;
-
-        let user = middlewares::verify_user(token, state)?;
-        Ok(Self { user })
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        if let Some(user) = parts.extensions.get::<User>().cloned() {
+            Ok(Self { user })
+        } else {
+            Err((
+                StatusCode::UNAUTHORIZED,
+                StatusCode::UNAUTHORIZED.to_string(),
+            )
+                .into_response())
+        }
+    }
 }
-}
-
-// #[async_trait]
-// impl FromRequest<AppState> for UserRequest {
-//     type Rejection = Response;
-//
-//     async fn from_request(req: Request, state: &AppState) -> Result<Self, Self::Rejection> {
-//         let token = req
-//             .headers()
-//             .get("Authorization")
-//             .ok_or(
-//                 (
-//                     StatusCode::UNAUTHORIZED,
-//                     StatusCode::UNAUTHORIZED.to_string(),
-//                 )
-//                     .into_response(),
-//             )?
-//             .to_str()
-//             .map_err(|_| {
-//                 (
-//                     StatusCode::UNAUTHORIZED,
-//                     StatusCode::UNAUTHORIZED.to_string(),
-//                 )
-//                     .into_response()
-//             })?;
-//
-//         let user = middlewares::verify_user(token, state)?;
-//         Ok(Self { user })
-//     }
-// }

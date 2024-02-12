@@ -11,7 +11,6 @@ use crate::{extractors::UserRequest, structures::*};
 #[derive(Deserialize)]
 struct CreateParty {
     name: Arc<str>,
-    username: Arc<str>,
 }
 #[derive(Deserialize)]
 struct DeleteParty {
@@ -20,11 +19,10 @@ struct DeleteParty {
 
 async fn all(
     State(state): State<AppState>,
-    UserRequest { user }: UserRequest,
 ) -> impl IntoResponse {
     let guard = state.parties.lock().unwrap();
     let hash: HashMap<_, _> = guard.clone(); // WARN: Deep clone
-    Json(user)
+    Json(hash)
 }
 
 #[axum::debug_handler]

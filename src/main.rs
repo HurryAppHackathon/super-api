@@ -1,4 +1,4 @@
-#![allow(unused)] // FIXME: remove on production
+// #![allow(unused)] // FIXME: remove on production
 //! Hurry app hackathon challenge
 //! The primary focus of this application revolves around synchronizing view streams among party users.
 
@@ -28,7 +28,7 @@ use socketioxide::{
 use std::{
     cell::OnceCell,
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
 };
 use structures::{Session, User};
 use tokio::net::TcpListener;
@@ -54,14 +54,14 @@ async fn main() -> Result<()> {
 
     let state = AppState {
         parties: Arc::new(Mutex::new(HashMap::new())),
-        socket: Arc::new(Mutex::new(W(OnceCell::new()))),
+        socket: W(OnceLock::new()),
         users: Arc::new(Mutex::new(vec![])),
         sessions: Arc::new(Mutex::new(vec![])),
     };
 
     let (layer, io) = SocketIo::builder().with_state(state.clone()).build_layer();
 
-    state.socket.lock().unwrap().0.set(io.clone()).ok();
+    state.socket.0.set(io.clone()).ok();
 
     io.ns("/", gateway::on_connect);
 
@@ -71,8 +71,7 @@ async fn main() -> Result<()> {
 
     let app = routes::mount(Router::new(), state.clone())
         .layer(layer)
-        .with_state(state);
-
+        .with_state(state.clone());
     serve(listener, app).await?;
 
     Ok(())

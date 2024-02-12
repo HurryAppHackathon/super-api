@@ -1,14 +1,24 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use axum::extract::State;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use socketioxide::extract::{Data, SocketRef, State as IoState};
 
-use crate::{extractors::UserRequest, middlewares::verify_user, structures::AppState};
+use crate::{
+    extractors::UserRequest,
+    middlewares::verify_user,
+    structures::{AppState, Snowflake, User},
+};
 
 #[derive(Deserialize, Debug)]
 pub struct HandShake {
     token: String,
+}
+
+#[derive(Deserialize)]
+struct JoinParty {
+    id: String,
 }
 
 pub fn on_connect(
@@ -23,10 +33,43 @@ pub fn on_connect(
         .unwrap()
         .to_str()
         .unwrap();
+    println!("{token}");
     println!("{:?}", state.sessions.lock().unwrap());
-    verify_user(token, state);
+    
+    if let Ok(user) = verify_user(token, state) {
+        println!("creating listners for {}", socket.id);
+        socket.on(
+            "join",
+            |socket: SocketRef, Data::<JoinParty>(data), IoState(state): IoState<AppState>| {
+                println!("join request party: {:?}", data.id);
+                let parties = state.parties.lock().unwrap();
+                if let Some(party) = parties.get(&Snowflake::try_from(data.id).unwrap()) { // FIXME
+                    println!("sending joined");
+                    // socket.(socket.id).emit("joined", party).ok();
+                } else {
+                    println!("party not found")
+                    // FIXME: return something somehow
+                }
+            },
+        );
 
-    println!("{data:?}");
+        socket.on(
+            "event",
+            |socket: SocketRef,
+             IoState(state): IoState<AppState>,
+             Data::<Value>(data): Data<Value>| {
+                for s in state.socket.sockets().unwrap() {
+                    if s.id == socket.id {
+                        continue;
+                    }
+                    socket.to(s.id).emit("event", data.clone()).ok();
+                }
+            },
+        )
+    } else {
+        println!("Invalid token ");
+
+    }
 
     // socket.disconnect().ok();
     //

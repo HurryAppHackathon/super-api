@@ -44,8 +44,6 @@ async fn create(
 
         state
             .socket
-            .lock()
-            .unwrap()
             .emit("message", Arc::clone(&message))
             .ok();
 

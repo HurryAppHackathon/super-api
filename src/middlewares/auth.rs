@@ -38,7 +38,7 @@ pub fn verify_user(token: &str, state: &AppState) -> Result<User, Response> {
 
 pub async fn auth(
     State(state): State<AppState>,
-    req: Request,
+    mut req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, Response> {
     let token = req
@@ -61,5 +61,7 @@ pub async fn auth(
         })?;
 
     let user = verify_user(token, &state)?;
+    // println!("{:?}", req.extensions().get());
+    req.extensions_mut().insert(user);
     Ok(next.run(req).await)
 }
