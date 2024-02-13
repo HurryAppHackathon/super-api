@@ -8,6 +8,7 @@
 6. [x] send messages
 7. [x] get all messages
 8. [x] Create real Authentication system (JWT maybe)
-9. [ ] join a party
-10. [ ] listen to party events (seek/pause/resume, etc...)
-11. [ ] implement the fully prototype
+9. [x] join a party
+10. [x] listen to party events (seek/pause/resume, etc...)
+11. [ ] craete rooms for each party
+12. [ ] implement the fully prototype
