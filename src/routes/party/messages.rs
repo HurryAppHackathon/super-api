@@ -9,7 +9,6 @@ use axum::{
 };
 use serde::Deserialize;
 
-
 use super::{AppState, Message, Party, Snowflake, User};
 
 #[derive(Deserialize)]

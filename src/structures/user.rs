@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
-use axum::{async_trait, extract::FromRequestParts, http::{request::Parts, StatusCode}, response::{IntoResponse, Response}};
+use axum::{
+    async_trait,
+    extract::FromRequestParts,
+    http::{request::Parts, StatusCode},
+    response::{IntoResponse, Response},
+};
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -66,8 +71,6 @@ impl User {
     }
 }
 
-
-
 // Extractor for axum
 #[async_trait]
 impl FromRequestParts<AppState> for User {
@@ -80,7 +83,6 @@ impl FromRequestParts<AppState> for User {
         if let Some(user) = parts.extensions.get::<User>().cloned() {
             Ok(user)
         } else {
-            println!("huh?");
             Err((
                 StatusCode::UNAUTHORIZED,
                 StatusCode::UNAUTHORIZED.to_string(),

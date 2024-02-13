@@ -19,7 +19,7 @@ async fn register(
     state.sessions.lock().unwrap().push(session.clone());
     state.users.lock().unwrap().push(user);
 
-    Json(token)
+    token
 }
 #[axum::debug_handler]
 async fn all(State(state): State<AppState>) -> impl IntoResponse {
@@ -38,7 +38,7 @@ async fn login(State(state): State<AppState>, Json(payload): Json<Register>) -> 
     }) {
         let session = Session::new(user.id);
         state.sessions.lock().unwrap().push(session.clone());
-        (StatusCode::OK, Json(session.gen_token().unwrap())).into_response()
+        (StatusCode::OK, session.gen_token().unwrap()).into_response()
     } else {
         (StatusCode::UNAUTHORIZED, Json("Invalid credentials")).into_response()
     }
@@ -46,10 +46,7 @@ async fn login(State(state): State<AppState>, Json(payload): Json<Register>) -> 
 
 // TODO: move this into "/user" router
 #[axum::debug_handler]
-async fn me(
-    State(_state): State<AppState>,
-    user: User,
-) -> impl IntoResponse {
+async fn me(State(_): State<AppState>, user: User) -> impl IntoResponse {
     Json(user)
 }
 pub fn routes() -> Router<AppState> {

@@ -1,11 +1,10 @@
 use axum::{
     extract::{Request, State},
     http::{request::Parts, StatusCode},
-    middleware::{self, FromFnLayer, Next},
+    middleware::Next,
     response::{IntoResponse, Response},
     RequestExt,
 };
-use futures::TryFutureExt;
 
 use crate::structures::{AppState, Session, User};
 
@@ -57,6 +56,7 @@ pub async fn auth_parts(parts: &Parts, state: AppState) -> Result<User, Response
                 .into_response()
         })?;
 
+    println!("verifing the user");
     let user = verify_user(token, &state)?;
     Ok(user)
 }

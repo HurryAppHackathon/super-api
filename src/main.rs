@@ -31,30 +31,50 @@ mod structures;
 use config::*;
 use prelude::*;
 
-use crate::structures::AppState;
+use crate::structures::*;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
+    let mut parties = HashMap::new();
+    let user = User {
+        username: "super user".into(),
+        hash_password: Private::Hidden("super password".into()),
+        id: Snowflake::try_from("7156070048988135427".to_string()).unwrap(),
+    };
+    parties.insert(
+        Snowflake::try_from("7156070048988135428".to_string()).unwrap(),
+        Arc::new(Party {
+            name: "this is name".to_string(),
+            owner: user.clone(),
+            messages: <_>::default(),
+            video: <_>::default(),
+        }),
+    );
 
     let state = AppState {
-        parties: Arc::new(Mutex::new(HashMap::new())),
-        socket: W(OnceLock::new()),
-        users: Arc::new(Mutex::new(vec![])),
-        sessions: Arc::new(Mutex::new(vec![])),
+        parties: Arc::new(Mutex::new(parties)),
+        socket: Arc::new(W(OnceLock::new())),
+        users: Arc::new(Mutex::new(vec![user.clone()])),
+        sessions: Arc::new(Mutex::new(vec![Session {
+            exp: 10000000,
+            user_id: user.id,
+            id: Snowflake::try_from("7156070048988135429".to_string()).unwrap(),
+        }])),
     };
 
     let (layer, io) = SocketIo::builder().with_state(state.clone()).build_layer();
 
-    io.ns("/", gateway::on_connect);
+    state.socket.0.set(io.clone()).ok();
 
-    state.socket.0.set(io).ok();
+    io.ns("/", gateway::on_connect);
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", *PORT)).await?;
 
     println!("🚀 Server is running: http://{}", listener.local_addr()?);
 
-    let app = routes::mount(Router::new(), state.clone()).layer(layer)
+    let app = routes::mount(Router::new(), state.clone())
+        .layer(layer)
         .with_state(state.clone());
     serve(listener, app).await?;
 

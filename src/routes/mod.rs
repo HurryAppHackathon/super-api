@@ -16,8 +16,7 @@ async fn root() -> impl IntoResponse {
 
 pub fn mount(app: Router<AppState>, state: AppState) -> Router<AppState> {
     // im hating this
-    app
-    .route("/", get(root))
+    app.route("/", get(root))
         .nest("/auth", auth::routes())
         .nest(
             "/party",

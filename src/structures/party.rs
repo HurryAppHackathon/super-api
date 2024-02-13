@@ -18,7 +18,6 @@ impl Party {
             owner,
             messages: <_>::default(),
             video: <_>::default(),
-            
         }
     }
 }
