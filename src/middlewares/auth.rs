@@ -65,7 +65,7 @@ pub async fn auth(
     mut req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, Response> {
-    let parts: Parts = req.extract_parts_with_state(&state).await.unwrap();
+    let parts: Parts = req.extract_parts_with_state(&state).await.unwrap(); // never return an error
     let user = auth_parts(&parts, state).await?;
     req.extensions_mut().insert(user);
     Ok(next.run(req).await)
