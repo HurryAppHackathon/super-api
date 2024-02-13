@@ -6,7 +6,7 @@ use std::{collections::HashMap, sync::Arc};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::*, Json, Router};
 use serde::Deserialize;
 
-use crate::{extractors::UserRequest, structures::*};
+use crate::{structures::*};
 
 #[derive(Deserialize)]
 struct CreateParty {
@@ -26,7 +26,7 @@ async fn all(State(state): State<AppState>) -> impl IntoResponse {
 #[axum::debug_handler]
 async fn create(
     State(state): State<AppState>,
-    UserRequest { user }: UserRequest,
+    user: User,
     Json(payload): Json<CreateParty>,
 ) -> impl IntoResponse {
     let party = Arc::from(Party::new(user, &payload.name));

@@ -10,9 +10,6 @@ use socketioxide::SocketIo;
 use super::*;
 use crate::prelude::*;
 
-struct MySocket {
-    socket: OnceCell<SocketIo>,
-}
 
 #[derive(Clone)]
 pub struct AppState {

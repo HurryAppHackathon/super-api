@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use axum::{async_trait, extract::FromRequestParts, http::{request::Parts, StatusCode}, response::{IntoResponse, Response}};
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -54,21 +55,37 @@ pub struct User {
     #[serde(skip_serializing_if = "Private::is_private")]
     pub hash_password: Private<Arc<str>>,
 }
-impl Default for User {
-    fn default() -> Self {
-        Self {
-            id: <_>::default(),
-            username: Arc::from(""),
-            hash_password: Private::Hidden(Arc::from("")),
-        }
-    }
-}
+
 impl User {
     pub fn new(username: &str, hash_password: &str) -> Self {
         Self {
             username: username.into(),
             hash_password: Private::Hidden(hash_password.into()),
-            ..<_>::default()
+            id: <_>::default(),
+        }
+    }
+}
+
+
+
+// Extractor for axum
+#[async_trait]
+impl FromRequestParts<AppState> for User {
+    type Rejection = Response;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        _state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        if let Some(user) = parts.extensions.get::<User>().cloned() {
+            Ok(user)
+        } else {
+            println!("huh?");
+            Err((
+                StatusCode::UNAUTHORIZED,
+                StatusCode::UNAUTHORIZED.to_string(),
+            )
+                .into_response())
         }
     }
 }

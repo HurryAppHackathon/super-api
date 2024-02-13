@@ -1,9 +1,11 @@
 use axum::{
     extract::{Request, State},
-    http::StatusCode,
-    middleware::Next,
+    http::{request::Parts, StatusCode},
+    middleware::{self, FromFnLayer, Next},
     response::{IntoResponse, Response},
+    RequestExt,
 };
+use futures::TryFutureExt;
 
 use crate::structures::{AppState, Session, User};
 
@@ -35,13 +37,9 @@ pub fn verify_user(token: &str, state: &AppState) -> Result<User, Response> {
     Ok(user)
 }
 
-pub async fn auth(
-    State(state): State<AppState>,
-    mut req: Request,
-    next: Next,
-) -> Result<impl IntoResponse, Response> {
-    let token = req
-        .headers()
+pub async fn auth_parts(parts: &Parts, state: AppState) -> Result<User, Response> {
+    let token = parts
+        .headers
         .get("Authorization")
         .ok_or(
             (
@@ -60,7 +58,15 @@ pub async fn auth(
         })?;
 
     let user = verify_user(token, &state)?;
-    // println!("{:?}", req.extensions().get());
+    Ok(user)
+}
+pub async fn auth(
+    State(state): State<AppState>,
+    mut req: Request,
+    next: Next,
+) -> Result<impl IntoResponse, Response> {
+    let parts: Parts = req.extract_parts_with_state(&state).await.unwrap();
+    let user = auth_parts(&parts, state).await?;
     req.extensions_mut().insert(user);
     Ok(next.run(req).await)
 }

@@ -23,7 +23,6 @@ mod config;
 mod error;
 mod prelude;
 
-mod extractors;
 mod gateway;
 mod middlewares;
 mod routes;
@@ -47,16 +46,15 @@ async fn main() -> Result<()> {
 
     let (layer, io) = SocketIo::builder().with_state(state.clone()).build_layer();
 
-    state.socket.0.set(io.clone()).ok();
-
     io.ns("/", gateway::on_connect);
+
+    state.socket.0.set(io).ok();
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", *PORT)).await?;
 
     println!("🚀 Server is running: http://{}", listener.local_addr()?);
 
-    let app = routes::mount(Router::new(), state.clone())
-        .layer(layer)
+    let app = routes::mount(Router::new(), state.clone()).layer(layer)
         .with_state(state.clone());
     serve(listener, app).await?;
 

@@ -19,12 +19,3 @@ impl Message {
         }
     }
 }
-impl Default for Message {
-    fn default() -> Self {
-        Self {
-            content: Arc::from(""),
-            id: <_>::default(),
-            author: <_>::default(),
-        }
-    }
-}

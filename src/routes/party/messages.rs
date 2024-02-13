@@ -9,9 +9,8 @@ use axum::{
 };
 use serde::Deserialize;
 
-use crate::extractors::UserRequest;
 
-use super::{AppState, Message, Party, Snowflake};
+use super::{AppState, Message, Party, Snowflake, User};
 
 #[derive(Deserialize)]
 struct PartyIdPath {
@@ -26,7 +25,7 @@ struct CreateMessage {
 async fn create(
     State(state): State<AppState>,
     Path(path): Path<PartyIdPath>,
-    UserRequest { user }: UserRequest,
+    user: User,
     Json(payload): Json<CreateMessage>,
 ) -> impl IntoResponse {
     let guard = state.parties.lock().unwrap();

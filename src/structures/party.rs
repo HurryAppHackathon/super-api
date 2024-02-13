@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use super::*;
 
-#[derive(Default, Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct Party {
     pub name: String,
     pub owner: User,
@@ -16,7 +16,9 @@ impl Party {
         Self {
             name: name.into(),
             owner,
-            ..<_>::default()
+            messages: <_>::default(),
+            video: <_>::default(),
+            
         }
     }
 }

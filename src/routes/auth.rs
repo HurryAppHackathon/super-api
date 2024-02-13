@@ -1,5 +1,3 @@
-use crate::extractors::UserRequest;
-
 use super::{AppState, Private, Session, User};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::*, Json, Router};
 use serde::Deserialize;
@@ -50,7 +48,7 @@ async fn login(State(state): State<AppState>, Json(payload): Json<Register>) -> 
 #[axum::debug_handler]
 async fn me(
     State(_state): State<AppState>,
-    UserRequest { user }: UserRequest,
+    user: User,
 ) -> impl IntoResponse {
     Json(user)
 }
