@@ -10,5 +10,5 @@
 8. [x] Create real Authentication system (JWT maybe)
 9. [x] join a party
 10. [x] listen to party events (seek/pause/resume, etc...)
-11. [ ] craete rooms for each party
+11. [x] craete rooms for each party
 12. [ ] implement the fully prototype

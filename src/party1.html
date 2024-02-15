@@ -7,14 +7,13 @@
 	</head>
 	<body>
 		<video onseeked="" onseeking="" width="320" height="240" controls>
-			<source
-				src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-				type="video/mp4"
-			/>
+			<source src="BigBuckBunny.mp4" type="video/mp4" />
 			<source src="movie.ogg" type="video/ogg" />
 			Your browser does not support the video tag.
 		</video>
 
+		<input type="text" /> <button>send</button>
+		<div id="messages"></div>
 		<script
 			src="https://cdn.socket.io/4.7.4/socket.io.min.js"
 			integrity="sha384-Gr6Lu2Ajx28mzwyVR8CFkULdCU7kMlZ9UthllibdOSo6qAiN+yXNHqtgdTvFXMT4"
@@ -65,9 +64,18 @@
 
 			(async () => {
 				const videoElement = document.getElementsByTagName("video")[0];
+				const messageInput = document.getElementsByTagName("input")[0];
+				const sendBtn = document.getElementsByTagName("button")[0];
+				const messagesContainer =
+					document.getElementsByTagName("div")[0];
 				videoElement.addEventListener("seeked", emitSeek);
 				videoElement.addEventListener("pause", emitPause);
 				videoElement.addEventListener("play", emitPlay);
+
+				sendBtn.addEventListener("click", () => {
+					if (!messageInput.value) return;
+					emitMessage();
+				});
 
 				const token = await get_token();
 				const parties = await get_parties(token);
@@ -80,6 +88,15 @@
 				socket.on("connect", () => {
 					console.log("connected to the websocket!");
 				});
+				socket.emit("join", {
+					id: "7156070048988135430",
+				});
+				socket.on("message", (message) => {
+					const div = document.createElement("div");
+					div.innerText = message.content;
+					messagesContainer.appendChild(div);
+				});
+
 				socket.on("event", (data) => {
 					switch (data.type) {
 						case "seek": {
@@ -159,33 +176,58 @@
 						}
 					}
 				});
-				socket.on("joined", (party) => {
+				socket.once("joined", (party) => {
 					console.log("event received");
-					console.log(party);
+					console.log(party.messages.length);
+					for (let message of party.messages) {
+						console.log('i');
+						const div = document.createElement("div");
+						div.innerText = message.content;
+						messagesContainer.appendChild(div);
+					}
 				});
 				socket.emit("join", {
-					id: "7156070048988135428",
+					id: "7156070048988135430",
 				});
 
 				function emitSeek() {
 					console.log("seeking");
 					socket.emit("event", {
-						type: "seek",
+						id: "7156070048988135430",
 						data: {
-							time: videoElement.currentTime,
+							type: "seek",
+							data: {
+								time: videoElement.currentTime,
+							},
 						},
 					});
+				}
+				function emitMessage() {
+					console.log("sending message");
+					socket.emit("message", {
+						id: "7156070048988135430",
+						content: messageInput.value,
+					});
+					const div = document.createElement("div");
+					div.innerText = messageInput.value;
+					messagesContainer.appendChild(div);
 				}
 				function emitPlay() {
 					console.log("playing");
 					socket.emit("event", {
-						type: "resume",
+						id: "7156070048988135430",
+						data: {
+							type: "resume",
+						},
 					});
 				}
 				function emitPause() {
 					console.log("pausing");
 					socket.emit("event", {
-						type: "pause",
+						id: "7156070048988135430",
+						data: {
+							type: "pause",
+						},
 					});
 				}
 			})();

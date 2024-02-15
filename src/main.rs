@@ -45,7 +45,16 @@ async fn main() -> Result<()> {
     parties.insert(
         Snowflake::try_from("7156070048988135428".to_string()).unwrap(),
         Arc::new(Party {
-            name: "this is name".to_string(),
+            name: "1".to_string(),
+            owner: user.clone(),
+            messages: <_>::default(),
+            video: <_>::default(),
+        }),
+    );
+    parties.insert(
+        Snowflake::try_from("7156070048988135430".to_string()).unwrap(),
+        Arc::new(Party {
+            name: "2".to_string(),
             owner: user.clone(),
             messages: <_>::default(),
             video: <_>::default(),

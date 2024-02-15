@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+	</head>
+	<body>
+		<video onseeked="" onseeking="" width="320" height="240" controls>
+			<source src="BigBuckBunny.mp4" type="video/mp4" />
+			<source src="movie.ogg" type="video/ogg" />
+			Your browser does not support the video tag.
+		</video>
+
+		<input type="text" /> <button>send</button>
+		<div id="messages"></div>
+		<script
+			src="https://cdn.socket.io/4.7.4/socket.io.min.js"
+			integrity="sha384-Gr6Lu2Ajx28mzwyVR8CFkULdCU7kMlZ9UthllibdOSo6qAiN+yXNHqtgdTvFXMT4"
+			crossorigin="anonymous"
+		></script>
+		<script>
+			async function get_token() {
+				let myHeaders = new Headers();
+				myHeaders.append("Content-Type", "application/json");
+
+				let raw = JSON.stringify({
+					username: "super user",
+					password: "super password",
+				});
+
+				let requestOptions = {
+					method: "POST",
+					headers: myHeaders,
+					body: raw,
+				};
+
+				let token = await fetch(
+					"http://localhost:3000/auth/login",
+					requestOptions
+				)
+					.then((response) => response.text())
+					.catch((error) => console.error(error));
+
+				return token;
+			}
+
+			async function get_parties(token) {
+				let headers = new Headers();
+				headers.append("Authorization", token);
+				const requestOptions = {
+					method: "GET",
+					headers: headers,
+					redirect: "follow",
+				};
+				let parties = await fetch(
+					"http://localhost:3000/party/all",
+					requestOptions
+				)
+					.then((response) => response.json())
+					.catch((error) => console.error(error));
+				return parties;
+			}
+
+			(async () => {
+				const videoElement = document.getElementsByTagName("video")[0];
+				const messageInput = document.getElementsByTagName("input")[0];
+				const sendBtn = document.getElementsByTagName("button")[0];
+				const messagesContainer =
+					document.getElementsByTagName("div")[0];
+				videoElement.addEventListener("seeked", emitSeek);
+				videoElement.addEventListener("pause", emitPause);
+				videoElement.addEventListener("play", emitPlay);
+
+				sendBtn.addEventListener("click", () => {
+					if (!messageInput.value) return;
+					emitMessage();
+				});
+
+				const token = await get_token();
+				const parties = await get_parties(token);
+
+				const socket = io("ws://localhost:3000", {
+					extraHeaders: {
+						Authorization: token,
+					},
+				});
+				socket.on("connect", () => {
+					console.log("connected to the websocket!");
+				});
+				socket.emit("join", {
+					id: "7156070048988135428",
+				});
+				socket.on("message", (message) => {
+					const div = document.createElement("div");
+					div.innerText = message.content;
+					messagesContainer.appendChild(div);
+				});
+
+				socket.on("event", (data) => {
+					switch (data.type) {
+						case "seek": {
+							console.log("seeking received");
+
+							// remove Listener temporary
+							videoElement.removeEventListener(
+								"seeked",
+								emitSeek
+							);
+							// after we recieved the event of seeking from the socket we get back the old Listener (emitSeek)
+							function reset() {
+								videoElement.removeEventListener(
+									"seeked",
+									reset
+								);
+								videoElement.addEventListener(
+									"seeked",
+									emitSeek
+								);
+							}
+							// this is magic :)
+							videoElement.addEventListener("seeked", reset);
+							// update the seek time
+							videoElement.currentTime = data.data.time;
+							// get back the Listener
+
+							break;
+						}
+						case "pause": {
+							console.log("pause received");
+
+							// remove Listener temporary
+							videoElement.removeEventListener(
+								"pause",
+								emitPause
+							);
+							// after we recieved the event of seeking from the socket we get back the old Listener (emitSeek)
+							function reset() {
+								videoElement.removeEventListener(
+									"pause",
+									reset
+								);
+								videoElement.addEventListener(
+									"pause",
+									emitPause
+								);
+							}
+							// this is magic :)
+							videoElement.addEventListener("pause", reset);
+							// update the seek time
+							videoElement.pause();
+							// get back the Listener
+
+							break;
+						}
+						case "resume": {
+							console.log("resume received");
+
+							// remove Listener temporary
+							videoElement.removeEventListener("pause", emitPlay);
+							// after we recieved the event of seeking from the socket we get back the old Listener (emitSeek)
+							function reset() {
+								videoElement.removeEventListener("play", reset);
+								videoElement.addEventListener("play", emitPlay);
+							}
+							// this is magic :)
+							videoElement.addEventListener("play", reset);
+							// update the seek time
+							videoElement.play();
+							// get back the Listener
+							break;
+						}
+						default: {
+							console.log(data);
+							break;
+						}
+					}
+				});
+				socket.once("joined", (party) => {
+					console.log("event received");
+					console.log(party);
+					for (let message of party.messages) {
+						const div = document.createElement("div");
+						div.innerText = message.content;
+						messagesContainer.appendChild(div);
+					}
+				});
+				socket.emit("join", {
+					id: "7156070048988135428",
+				});
+
+				function emitSeek() {
+					console.log("seeking");
+					socket.emit("event", {
+						id: "7156070048988135428",
+						data: {
+							type: "seek",
+							data: {
+								time: videoElement.currentTime,
+							},
+						},
+					});
+				}
+				function emitMessage() {
+					console.log("sending message");
+					socket.emit("message", {
+						id: "7156070048988135428",
+						content: messageInput.value,
+					});
+					const div = document.createElement("div");
+					div.innerText = messageInput.value;
+					messagesContainer.appendChild(div);
+				}
+				function emitPlay() {
+					console.log("playing");
+					socket.emit("event", {
+						id: "7156070048988135428",
+						data: {
+							type: "resume",
+						},
+					});
+				}
+				function emitPause() {
+					console.log("pausing");
+					socket.emit("event", {
+						id: "7156070048988135428",
+						data: {
+							type: "pause",
+						},
+					});
+				}
+			})();
+		</script>
+	</body>
+</html>
